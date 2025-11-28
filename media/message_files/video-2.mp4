@@ -1,0 +1,2495 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Circuit Management System</title>
+    <!-- Tell the browser to be responsive to screen width -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/static/plugins/fontawesome-free/css/all.min.css ">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <!-- Tempusdominus Bbootstrap 4 -->
+    <link rel="stylesheet"
+        href="/static/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css ">
+    <!-- iCheck -->
+    <link rel="stylesheet" href="/static/plugins/icheck-bootstrap/icheck-bootstrap.min.css ">
+    
+    <!-- Theme style -->
+    <link rel="stylesheet" href="/static/dist/css/adminlte.min.css ">
+    <!-- overlayScrollbars -->
+    <link rel="stylesheet" href="/static/plugins/overlayScrollbars/css/OverlayScrollbars.min.css ">
+    <!-- Daterange picker -->
+    <link rel="stylesheet" href="/static/plugins/daterangepicker/daterangepicker.css ">
+    
+    <!-- Google Font: Source Sans Pro -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+    
+
+    
+</head>
+
+<body class="hold-transition sidebar-mini layout-fixed">
+    <div class="wrapper">
+
+        <!-- Navbar -->
+        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+            <!-- Left navbar links -->
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a>
+                </li>
+
+            </ul>
+
+
+        </nav>
+        <!-- /.navbar -->
+
+        <!-- Main Sidebar Container -->
+          
+ 
+        
+<aside class="main-sidebar sidebar-dark-info elevation-4">
+    
+    <!-- Brand Logo -->
+    <a href="/admin/home/" class="brand-link">
+        <img src="/static/dist/img/cmsl.png " alt="AdminLTE Logo"
+            class="brand-image img-circle elevation-3" >
+        <span class="brand-text font-weight-light">Admin Panel</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- Sidebar user panel (optional) -->
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="image">
+                <img src="" class="img-circle elevation-2" alt="User Image">
+            </div>
+            <div class="info">
+                <a href="#" class="d-block">, </a>
+            </div>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+
+                <li class="nav-item">
+                    
+                    <a href="/admin/home/" class="nav-link ">
+                        <i class="nav-icon fas fa-home"></i>
+                        <p>
+                            Home
+
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-bookmark"></i>
+                        <p>
+                            Appointment
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            
+                           
+                            <a href="/view-appointment/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    View_Appointments
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="sendFeedbackDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Send Feedback</p>
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="sendFeedbackDropdown">
+                                
+                            </ul>
+                        </li>
+                        
+
+                        <li class="nav-item">
+                            
+                            <a href="/feedback-status/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Feedback Status
+
+                                </p>
+                            </a>
+                        </li>
+                    </ul>
+               
+                <div class="mt-3">
+                    Manage<a class="link" href="/news/"> News &amp; Events &raquo;</a>
+                    <p class="text-muted">CRUD (Create, Retrieve, Update &amp; Delete) News &amp; Events</p>
+                </div>
+                <li class="nav-item">
+                    
+                    <a href="/admin_view_profile"
+                        class="nav-link ">
+                        <i class="nav-icon fas fa-address-card"></i>
+                        <p>
+                            Update Profile
+
+                        </p>
+                    </a>
+                </li>
+
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-bookmark"></i>
+                        <p>
+                            Course
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            
+                            <a href="/course/add"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Course
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/course/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Course
+
+                                </p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-book"></i>
+                        <p>
+                            School
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <li class="nav-item has-treeview">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fas fa-project-diagram"></i>
+                            <p>
+                                Circuits
+                                <i class="fas fa-angle-left right"></i>
+                            </p>
+                        </a>
+
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                
+                                <a href="/circuit_gallery/" class="nav-link ">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Circuit Gallery</p>
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                
+                                <a href="/circuit/1/" class="nav-link ">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>View Circuit</p>
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                
+                                <a href="/add/" class="nav-link ">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Add Circuit</p>
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                
+                                <a href="/delete/1/" class="nav-link ">
+                                    <i class="far fa-circle nav-icon text-danger"></i>
+                                    <p>Delete Circuit</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            
+                            <a href="/school/add/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add School
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/school/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage School
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/addsos/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Assesment Dates
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/soslistview/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Assessment List
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/term/add"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Term
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/term/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Term
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/grade/add"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Grade
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/grade/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Grade
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/subject/add/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Subject
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/subject/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Subject
+
+                                </p>
+                            </a>
+                        </li>
+
+                    </ul>
+                </li>
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-clock"></i>
+                        <p>
+                            Session
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+
+                        <li class="nav-item">
+                            
+                            <a href="/add_session/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Session
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/session/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Session
+
+                                </p>
+                            </a>
+                        </li>
+
+                    </ul>
+                </li>
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-book"></i>
+                        <p>
+                            Files
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <!-- Question Paper Dropdown -->
+                    <li class="nav-item has-treeview">
+                        <a href="#" class="nav-link">
+                            <i class="far fa-file-pdf nav-icon"></i>
+                            <p>
+                                Question Paper
+                                <i class="fas fa-angle-left right"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                
+                                <a href="/questpaperupload/" class="nav-link ">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Upload</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                
+                                <a href="/questpaperquestpaperdownload/1/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Download</p>
+                                </a>
+                            </li>
+                            
+                            <li class="nav-item">
+                                
+                                <a href="/questpaperquestionpaperlist/" class="nav-link ">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Qustion Papers List</p>
+                                </a>
+                            </li>
+                            
+                            <!-- Topics Section -->
+                            <li class="nav-item">
+                                
+                                <a href="/questpapertopics/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Topics</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                
+                                <a href="/questpapertopics/create/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Create Topic</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                
+                                <a href="/questpapertopics/1/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Topic Detail</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                
+                                <a href="/questpapertopics/1/update/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Update Topic</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                
+                                <a href="/questpapertopics/1/delete/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Delete Topic</p>
+                                </a>
+                            </li>
+                            
+                            <!-- Departments Section -->
+                            <li class="nav-item">
+                                
+                                <a href="/questpaperdepartments/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Departments</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                
+                                <a href="/questpaperdepartments/create/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Create Department</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                
+                                <a href="/questpaperdepartments/1/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Department Detail</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                
+                                <a href="/questpaperdepartments/1/update/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Update Department</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                
+                                <a href="/questpaperdepartments/1/delete/" class="nav-link">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Delete Department</p>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            
+                            <a href="/schoolform/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Form
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/schoolupload/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Upload schoolfiles
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/educator/upload_question_paper/" class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Upload Question Paper</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/schoolfiles/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Files
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/school/submit-documents/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Submit Documents
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/school/view-textbooks/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    View Textbooks
+
+                                </p>
+                            </a>
+                        </li>
+                        
+                    </ul>
+                </li>
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-images"></i>
+                        <p>
+                            Gallery
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            
+                            <a href="/photo" class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Gallery Overview</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/photolistview/" class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Gallery List View</p>
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            
+                            <a href="/photoapprove_photos/" class="nav-link ">
+                                <i class="far fa-check-circle nav-icon"></i>
+                                <p>Approve Photos</p>
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            
+                            <a href="/photoadd/" class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Add Photo</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                             
+                            <a href="/photophoto/1/" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>View Photo</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                             
+                            <a href="/photocategory/example-category/" class="nav-link">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Categories</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                
+                <!--jobs-->
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-bookmark"></i>
+                        <p>
+                            Jobs
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            
+                            <a href="/jobjoblistview/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Jobs listings
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/jobapplicationview/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    View applications
+                                </p>
+                            </a>
+                        </li>
+                       
+                        
+
+
+                    </ul>
+                </li>
+                <!--jobs END-->
+                
+
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-user-plus"></i>
+                        <p>
+                            User
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+
+                        <li class="nav-item">
+                            
+                            <a href="/staff/add"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Staff
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/staff/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Staff
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/student/add/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Student
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/student/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Student
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/principal/add/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Principal
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/principal/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Principal
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/educator/add/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Educator
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/educator/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Educator
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/parent/add/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Parent
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/parent/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Parent
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/circuit_manager/add/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Circuit_Manager
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/educator/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage circuit_manager
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/member/add/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Add Member
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            
+                            <a href="/member/manage/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Manage Member
+
+                                </p>
+                            </a>
+                        </li>
+                        
+
+                    </ul>
+                </li>
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-bullhorn"></i>
+                        <p>
+                            Notify
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+
+                        <li class="nav-item">
+                            
+                            <a href="/admin_notify_staff"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Notify Staff
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/admin_notify_student"
+                                class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Notify Student
+
+                                </p>
+                            </a>
+                        </li>
+
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    
+
+                <li class="nav-item">
+                    <a href="/attendance/view/"
+                        class="nav-link  ">
+                        <i class="nav-icon fas fa-calendar-alt"></i>
+                        <p>
+                            View Attendance
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    
+
+                    <a href="/student/view/feedback/"
+                        class="nav-link  ">
+                        <i class="nav-icon fas fa-comment-alt"></i>
+                        <p>
+                            Student Feedback
+
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    
+
+                    <a href="/staff/view/feedback/"
+                        class="nav-link   ">
+                        <i class="nav-icon fas fa-comment"></i>
+                        <p>
+                            Staff Feedback
+
+                        </p>
+                    </a>
+                </li>
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-check-double"></i>
+                        <p>
+                            Leave
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+
+                        <li class="nav-item">
+                            
+                            <a href="/staff/view/leave/"
+                                class="nav-link  ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Staff Leave
+
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/student/view/leave/"
+                                class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Student Leave
+
+                                </p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="nav-item has-treeview">
+                    <a href="#" class="nav-link">
+                        <i class="nav-icon fas fa-bookmark"></i>
+                        <p>
+                            Tertiary
+                            <i class="fas fa-angle-left right"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            
+                            <a href="/collegecolleges/add/"
+                                class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                   Add Universities
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/bursarybursaries/add/"
+                                class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                   Add Bursaries
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/bursarybursaries/"
+                                class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Bursaries
+                                </p>
+                            </a>
+                        </li>
+                        <!-- Prospectors Menu Items -->
+                        <li class="nav-item">
+                            
+                            <a href=""
+                                class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Prospectors List
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/prospectors/upload/"
+                                class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Upload Prospector
+                                </p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            
+                            <a href="/prospectors/"
+                                class="nav-link ">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>
+                                    Prospectors List (Class-Based)
+                                </p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                
+            
+                <!-- Code for user_type 1 -->1
+                
+                                <!--CWA Applications-->
+                   
+                               
+                                <!--END-->
+                                <li class="nav-item">
+                                    <a href="/logout_user/"
+                                        onclick="return confirm('Your session would be terminated.\n\nProceed?')"
+                                        class="nav-link">
+                                        <i class="nav-icon fas fa-power-off"></i>
+                                        <p>
+                                            Logout
+                                        </p>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        <!-- /.sidebar-menu -->
+                         
+                    </div>
+                    <!-- /.sidebar -->
+</aside>
+
+
+      
+        <div class="content-wrapper">
+
+            <!-- Content Wrapper. Contains page content -->
+            <!-- Content Header (Page header) -->
+            <div class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1 class="m-0 text-dark"></h1>
+                        </div><!-- /.col -->
+                        <div class="col-sm-6">
+                            
+                            <ol class="breadcrumb float-sm-right">
+                                <li class="breadcrumb-item"><a href="#">Home</a></li>
+                                <li class="breadcrumb-item active"></li>
+                            </ol>
+                        </div><!-- /.col -->
+                    </div><!-- /.row -->
+                </div><!-- /.container-fluid -->
+            </div>
+            <!-- /.content-header -->
+
+            <!-- Main content -->
+            
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+            <div class="form-group">
+                
+            </div>
+            </div></div></div></section>
+            
+<div class="container-fluid px-0 mx-0">
+  <!-- Main Video Feed -->
+  <div class="video-feed">
+    
+    <div class="video-card" data-video-id="2">
+      <!-- Video Header -->
+      <div class="video-header">
+        <div class="user-info">
+          <div class="avatar-sm">
+            
+              <div class="avatar-placeholder">
+                1
+              </div>
+            
+          </div>
+          <div class="user-details">
+            <strong>@1</strong>
+            <span>0 minutes ago</span>
+          </div>
+        </div>
+        <div class="video-actions">
+          <button class="btn-more">
+            <i class="fas fa-ellipsis-h"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Video Player -->
+      <div class="video-container">
+        <video 
+          class="instagram-video"
+          preload="metadata"
+          loop
+          playsinline
+          poster="/mediafiles/video_thumbnails/logo_gmlQfOT.png"
+        >
+          <source src="/mediafiles/videos/Untitled_design_vQ1DnkO.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        
+        <!-- Custom Controls -->
+        <div class="video-controls">
+          <button class="control-btn play-pause">
+            <i class="fas fa-play"></i>
+          </button>
+          <div class="progress-container">
+            <div class="progress-bar">
+              <div class="progress-fill"></div>
+            </div>
+          </div>
+          <div class="time-display">
+            <span class="current-time">0:00</span>
+            <span class="duration">0:00</span>
+          </div>
+          <button class="control-btn fullscreen-btn">
+            <i class="fas fa-expand"></i>
+          </button>
+        </div>
+
+        <!-- Video Overlay Actions (Right Side) -->
+        <div class="video-side-actions">
+          <div class="action-item">
+            <button class="action-btn like-btn" data-video-id="2">
+              <i class="far fa-heart"></i>
+              <span class="count">1</span>
+            </button>
+          </div>
+          <div class="action-item">
+            <button class="action-btn comment-btn" onclick="openComments(2)">
+              <i class="far fa-comment"></i>
+              <span class="count">2</span>
+            </button>
+          </div>
+          <div class="action-item">
+            <button class="action-btn share-btn" data-video-id="2">
+              <i class="far fa-paper-plane"></i>
+              <span class="count">Share</span>
+            </button>
+          </div>
+          <div class="action-item">
+            <button class="action-btn save-btn">
+              <i class="far fa-bookmark"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Info -->
+      <div class="video-info">
+        <div class="video-stats">
+          <span class="views">0 views</span>
+          
+          <span class="category-tag">Software</span>
+          
+        </div>
+        
+        <p class="video-description">
+          <strong>@1</strong> How we pitched our project to YC
+        </p>
+
+        <!-- Social Links -->
+        
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<!-- Comments Modal -->
+<div id="commentsModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5>Comments</h5>
+      <button class="close-modal">&times;</button>
+    </div>
+    <div class="comments-container">
+      <div class="comments-list" id="commentsList">
+        <div class="text-center text-muted py-4">Loading comments...</div>
+      </div>
+      <div class="comment-input-container">
+        <form id="commentForm" class="comment-form">
+          <input type="hidden" name="csrfmiddlewaretoken" value="ti9lDJXFQ5fWaDNXdutZLkqxTTiQgCFDxNDvyYUGmBjTnnbQ6qftdA1HOjYYAqgN">
+          <input type="hidden" id="videoId" name="video_id">
+          <div class="input-group">
+            <input type="text" id="commentText" name="text" placeholder="Add a comment..." class="comment-input" required>
+            <button type="submit" class="post-comment-btn" disabled>Post</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Share Modal -->
+<div id="shareModal" class="modal">
+  <div class="modal-content share-modal-content">
+    <div class="modal-header">
+      <h5>Share Video</h5>
+      <button class="close-modal">&times;</button>
+    </div>
+    <div class="share-options">
+      <button class="share-option" data-action="copy-link">
+        <i class="fas fa-link"></i>
+        <span>Copy Link</span>
+      </button>
+      <button class="share-option" data-action="share-native">
+        <i class="fas fa-share-alt"></i>
+        <span>Share via...</span>
+      </button>
+      <button class="share-option" data-action="download">
+        <i class="fas fa-download"></i>
+        <span>Download</span>
+      </button>
+    </div>
+    <div class="social-share-grid">
+      <button class="social-share-btn facebook-share" data-platform="facebook">
+        <i class="fab fa-facebook"></i>
+        <span>Facebook</span>
+      </button>
+      <button class="social-share-btn twitter-share" data-platform="twitter">
+        <i class="fab fa-twitter"></i>
+        <span>Twitter</span>
+      </button>
+      <button class="social-share-btn whatsapp-share" data-platform="whatsapp">
+        <i class="fab fa-whatsapp"></i>
+        <span>WhatsApp</span>
+      </button>
+      <button class="social-share-btn telegram-share" data-platform="telegram">
+        <i class="fab fa-telegram"></i>
+        <span>Telegram</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+:root {
+  --primary-color: #0095f6;
+  --text-primary: #262626;
+  --text-secondary: #8e8e8e;
+  --border-color: #dbdbdb;
+  --bg-white: #ffffff;
+  --bg-gray: #fafafa;
+  --success-color: #4caf50;
+}
+
+/* Reset container padding and margins */
+.container-fluid.px-0.mx-0 {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100%;
+}
+
+/* Improved Video Feed Layout */
+.video-feed {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  background: var(--bg-white);
+}
+
+/* Mobile First - Full Width */
+.video-card {
+  width: 100%;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-white);
+  position: relative;
+}
+
+/* Desktop Layout */
+@media (min-width: 768px) {
+  .video-feed {
+    max-width: 614px;
+    padding: 0;
+  }
+  
+  .video-card {
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+  }
+  
+  .video-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* Large Desktop */
+@media (min-width: 1200px) {
+  .video-feed {
+    max-width: 735px;
+  }
+}
+
+/* Video Container - Full width on mobile */
+.video-container {
+  position: relative;
+  background: #000;
+  aspect-ratio: 9/16;
+  max-height: 100vh;
+  overflow: hidden;
+  cursor: pointer;
+  width: 100%;
+}
+
+.instagram-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+
+/* Video Header */
+.video-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  width: 100%;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.user-details strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.user-details span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.btn-more {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.btn-more:hover {
+  background: var(--bg-gray);
+}
+
+/* Video Controls */
+.video-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+  padding: 15px 20px;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.video-container:hover .video-controls {
+  opacity: 1;
+}
+
+.control-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-btn:hover {
+  background: rgba(255,255,255,0.1);
+  transform: scale(1.1);
+}
+
+.progress-container {
+  flex: 1;
+  margin: 0 10px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: height 0.2s;
+}
+
+.progress-bar:hover {
+  height: 6px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  width: 0%;
+  transition: width 0.1s;
+}
+
+.time-display {
+  display: flex;
+  gap: 5px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.9);
+  min-width: 80px;
+  font-family: monospace;
+}
+
+/* Side Actions */
+.video-side-actions {
+  position: absolute;
+  right: 16px;
+  bottom: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.2s;
+  padding: 8px;
+  border-radius: 50%;
+  backdrop-filter: blur(10px);
+  background: rgba(0,0,0,0.3);
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+  background: rgba(0,0,0,0.5);
+}
+
+.action-btn .count {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Video Info */
+.video-info {
+  padding: 16px;
+  width: 100%;
+}
+
+.video-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.views {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.category-tag {
+  background: var(--bg-gray);
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.video-description {
+  margin: 12px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+/* FIXED Social Links Styles - Minimalistic */
+.social-links-container {
+  margin-top: 16px;
+  padding: 0;
+}
+
+.social-links-header {
+  margin-bottom: 12px;
+}
+
+.social-links-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.social-links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+
+.social-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: white;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  min-height: 36px;
+  background: var(--bg-gray);
+  border: 1px solid var(--border-color);
+}
+
+.social-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  text-decoration: none;
+  color: white;
+}
+
+.social-link-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Social Media Brand Colors */
+.social-link.youtube { 
+  background: #ff0000; 
+  border-color: #ff0000;
+}
+.social-link.tiktok { 
+  background: #000000; 
+  border-color: #000000;
+}
+.social-link.instagram { 
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); 
+  border: none;
+}
+.social-link.facebook { 
+  background: #1877f2; 
+  border-color: #1877f2;
+}
+.social-link.twitter { 
+  background: #1da1f2; 
+  border-color: #1da1f2;
+}
+.social-link.whatsapp { 
+  background: #25d366; 
+  border-color: #25d366;
+}
+
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 12px;
+  width: 95%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.share-modal-content {
+  max-width: 400px;
+  padding: 0;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-white);
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-header h5 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 5px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.close-modal:hover {
+  background: var(--bg-gray);
+}
+
+.comments-container {
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+}
+
+.comments-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--bg-white);
+}
+
+.comment-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  animation: fadeIn 0.3s ease;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.comment-item:hover {
+  background: var(--bg-gray);
+}
+
+.comment-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.comment-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.comment-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-author {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.comment-text {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.comment-input-container {
+  padding: 16px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-white);
+  border-radius: 0 0 12px 12px;
+}
+
+.comment-form {
+  width: 100%;
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.comment-input {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  background: var(--bg-white);
+}
+
+.comment-input:focus {
+  border-color: var(--primary-color);
+}
+
+.post-comment-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 60px;
+}
+
+.post-comment-btn:hover:not(:disabled) {
+  background: #007acc;
+  transform: translateY(-1px);
+}
+
+.post-comment-btn:disabled {
+  background: var(--text-secondary);
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Share Modal Styles */
+.share-options {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 8px;
+}
+
+.share-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.share-option:hover {
+  background: var(--bg-gray);
+}
+
+.share-option i {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+}
+
+.social-share-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.social-share-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-white);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.social-share-btn:hover {
+  background: var(--bg-gray);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.facebook-share i { color: #1877f2; }
+.twitter-share i { color: #1da1f2; }
+.whatsapp-share i { color: #25d366; }
+.telegram-share i { color: #0088cc; }
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  z-index: 1000;
+  animation: slideUp 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.like-animation {
+  animation: heartBeat 0.6s ease;
+}
+
+@keyframes heartBeat {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.3); }
+  50% { transform: scale(1); }
+  75% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  background: var(--bg-white);
+  border-radius: 12px;
+  margin: 20px;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state .btn {
+  margin-top: 15px;
+}
+
+.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Responsive adjustments for social links */
+@media (max-width: 480px) {
+  .social-links-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  
+  .social-link {
+    padding: 6px 8px;
+    font-size: 11px;
+    min-height: 32px;
+    gap: 6px;
+  }
+  
+  .social-link-label {
+    font-size: 10px;
+  }
+  
+  .social-links-title {
+    font-size: 12px;
+  }
+  
+  .video-header {
+    padding: 12px;
+  }
+  
+  .video-info {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 360px) {
+  .social-links-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('commentsModal');
+  const shareModal = document.getElementById('shareModal');
+  const closeBtns = document.querySelectorAll('.close-modal');
+  const commentForm = document.getElementById('commentForm');
+  const commentInput = document.getElementById('commentText');
+  const postCommentBtn = document.querySelector('.post-comment-btn');
+  
+  // Share button functionality
+  document.querySelectorAll('.share-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const videoId = this.dataset.videoId;
+      openShareModal(videoId);
+    });
+  });
+  
+  // Close modals
+  closeBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      const modal = this.closest('.modal');
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+    });
+  });
+  
+  // Close modal when clicking outside
+  document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    });
+  });
+  
+  // Close modal with Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal').forEach(modal => {
+        if (modal.style.display === 'block') {
+          modal.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      });
+    }
+  });
+  
+  // Comment input validation
+  commentInput.addEventListener('input', function() {
+    postCommentBtn.disabled = !this.value.trim();
+  });
+  
+  // Comment form submission
+  commentForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const videoId = document.getElementById('videoId').value;
+    const commentText = commentInput.value.trim();
+    
+    if (commentText) {
+      postCommentBtn.disabled = true;
+      postCommentBtn.textContent = 'Posting...';
+      
+      fetch(`/videos/${videoId}/comment/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: commentText })
+      })
+      .then(response => {
+        if (response.status === 401) {
+          return response.json().then(data => {
+            throw new Error(data.error || 'Please login to comment');
+          });
+        }
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          commentInput.value = '';
+          postCommentBtn.disabled = true;
+          postCommentBtn.textContent = 'Post';
+          loadComments(videoId);
+          
+          // Update comment count on the video card
+          const commentBtn = document.querySelector(`[onclick="openComments(${videoId})"]`);
+          if (commentBtn) {
+            const countSpan = commentBtn.querySelector('.count');
+            const currentCount = parseInt(countSpan.textContent) || 0;
+            countSpan.textContent = currentCount + 1;
+          }
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        postCommentBtn.disabled = false;
+        postCommentBtn.textContent = 'Post';
+        if (error.message.includes('login') || error.message.includes('Authentication')) {
+          if (confirm('Please login to comment. Would you like to login now?')) {
+            window.location.href = '/accounts/login/?next=' + window.location.pathname;
+          }
+        } else {
+          alert('Error posting comment. Please try again.');
+        }
+      });
+    }
+  });
+  
+  // Improved video player functionality
+  document.querySelectorAll('.instagram-video').forEach(video => {
+    const container = video.closest('.video-container');
+    const playBtn = container.querySelector('.play-pause');
+    const progressFill = container.querySelector('.progress-fill');
+    const currentTime = container.querySelector('.current-time');
+    const duration = container.querySelector('.duration');
+    const progressBar = container.querySelector('.progress-bar');
+    const fullscreenBtn = container.querySelector('.fullscreen-btn');
+    
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return '0:00';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    video.addEventListener('timeupdate', function() {
+      const percent = (video.currentTime / video.duration) * 100;
+      progressFill.style.width = percent + '%';
+      currentTime.textContent = formatTime(video.currentTime);
+    });
+    
+    video.addEventListener('loadedmetadata', function() {
+      duration.textContent = formatTime(video.duration);
+    });
+    
+    video.addEventListener('loadstart', function() {
+      currentTime.textContent = '0:00';
+      duration.textContent = '0:00';
+    });
+    
+    // Click on progress bar to seek
+    progressBar.addEventListener('click', function(e) {
+      const rect = this.getBoundingClientRect();
+      const percent = (e.clientX - rect.left) / rect.width;
+      video.currentTime = percent * video.duration;
+    });
+    
+    // Play/pause functionality
+    playBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleVideoPlayback(video, playBtn);
+    });
+    
+    video.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleVideoPlayback(video, playBtn);
+    });
+    
+    video.addEventListener('ended', function() {
+      playBtn.innerHTML = '<i class="fas fa-play"></i>';
+    });
+    
+    // Fullscreen functionality
+    fullscreenBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleFullscreen(container);
+    });
+  });
+  
+  function toggleVideoPlayback(video, playBtn) {
+    if (video.paused) {
+      video.play().then(() => {
+        playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+      }).catch(error => {
+        console.error('Error playing video:', error);
+      });
+    } else {
+      video.pause();
+      playBtn.innerHTML = '<i class="fas fa-play"></i>';
+    }
+  }
+  
+  function toggleFullscreen(element) {
+    if (!document.fullscreenElement) {
+      element.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  }
+  
+  // Like functionality
+  document.querySelectorAll('.like-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const videoId = this.dataset.videoId;
+      const icon = this.querySelector('i');
+      const count = this.querySelector('.count');
+      
+      // Add animation
+      this.classList.add('like-animation');
+      setTimeout(() => this.classList.remove('like-animation'), 600);
+      
+      // Toggle like via AJAX
+      fetch(`/videos/${videoId}/like/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/json',
+        },
+      })
+      .then(response => {
+        if (response.status === 401) {
+          return response.json().then(data => {
+            throw new Error(data.error || 'Please login to like videos');
+          });
+        }
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.liked) {
+          icon.className = 'fas fa-heart';
+          icon.style.color = '#ed4956';
+          count.textContent = data.likes_count;
+        } else {
+          icon.className = 'far fa-heart';
+          icon.style.color = '';
+          count.textContent = data.likes_count;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        if (error.message.includes('login') || error.message.includes('Authentication')) {
+          if (confirm('Please login to like videos. Would you like to login now?')) {
+            window.location.href = '/accounts/login/?next=' + window.location.pathname;
+          }
+        } else {
+          alert('Error liking video. Please try again.');
+        }
+      });
+    });
+  });
+  
+  // Share modal functionality
+  function openShareModal(videoId) {
+    const modal = document.getElementById('shareModal');
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    
+    // Set up share options
+    setupShareOptions(videoId);
+  }
+  
+  function setupShareOptions(videoId) {
+    const videoUrl = `${window.location.origin}/videos/${videoId}/`;
+    
+    // Copy link
+    document.querySelector('[data-action="copy-link"]').onclick = function() {
+      navigator.clipboard.writeText(videoUrl).then(() => {
+        showToast('Link copied to clipboard!');
+        shareModal.style.display = 'none';
+        document.body.style.overflow = '';
+      }).catch(() => {
+        showToast('Failed to copy link');
+      });
+    };
+    
+    // Native share
+    document.querySelector('[data-action="share-native"]').onclick = function() {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Check out this video!',
+          url: videoUrl
+        }).then(() => {
+          shareModal.style.display = 'none';
+          document.body.style.overflow = '';
+        }).catch(() => {
+          showToast('Share cancelled');
+        });
+      } else {
+        showToast('Web Share not supported in your browser');
+      }
+    };
+    
+    // Download
+    document.querySelector('[data-action="download"]').onclick = function() {
+      const videoElement = document.querySelector(`[data-video-id="${videoId}"] .instagram-video`);
+      if (videoElement) {
+        const link = document.createElement('a');
+        link.href = videoElement.src;
+        link.download = `video-${videoId}.mp4`;
+        link.click();
+        showToast('Download started');
+      } else {
+        showToast('Cannot download video');
+      }
+      shareModal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+    
+    // Social media sharing
+    document.querySelector('.facebook-share').onclick = function() {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(videoUrl)}`, '_blank');
+      shareModal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+    
+    document.querySelector('.twitter-share').onclick = function() {
+      window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(videoUrl)}`, '_blank');
+      shareModal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+    
+    document.querySelector('.whatsapp-share').onclick = function() {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`Check out this video: ${videoUrl}`)}`, '_blank');
+      shareModal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+    
+    document.querySelector('.telegram-share').onclick = function() {
+      window.open(`https://t.me/share/url?url=${encodeURIComponent(videoUrl)}`, '_blank');
+      shareModal.style.display = 'none';
+      document.body.style.overflow = '';
+    };
+  }
+  
+  function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.remove();
+    }, 3000);
+  }
+  
+  // Handle page visibility change (pause videos when tab is not active)
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      document.querySelectorAll('.instagram-video').forEach(video => {
+        if (!video.paused) {
+          video.pause();
+          const playBtn = video.closest('.video-container').querySelector('.play-pause');
+          if (playBtn) {
+            playBtn.innerHTML = '<i class="fas fa-play"></i>';
+          }
+        }
+      });
+    }
+  });
+});
+
+// Open comments modal
+function openComments(videoId) {
+  const modal = document.getElementById('commentsModal');
+  document.getElementById('videoId').value = videoId;
+  document.getElementById('commentText').value = '';
+  document.querySelector('.post-comment-btn').disabled = true;
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  loadComments(videoId);
+}
+
+// Close comments modal
+function closeComments() {
+  const modal = document.getElementById('commentsModal');
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// Load comments for a video
+function loadComments(videoId) {
+  const commentsList = document.getElementById('commentsList');
+  commentsList.innerHTML = '<div class="text-center text-muted py-4">Loading comments...</div>';
+  
+  fetch(`/videos/${videoId}/comments/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(comments => {
+      commentsList.innerHTML = '';
+      
+      if (comments.length === 0) {
+        commentsList.innerHTML = '<div class="text-center text-muted py-4">No comments yet. Be the first to comment!</div>';
+        return;
+      }
+      
+      comments.forEach(comment => {
+        const commentEl = document.createElement('div');
+        commentEl.className = 'comment-item';
+        commentEl.innerHTML = `
+          <div class="comment-avatar">
+            <div class="avatar-placeholder">${comment.user_name ? comment.user_name[0].toUpperCase() : 'U'}</div>
+          </div>
+          <div class="comment-content">
+            <div class="comment-author">@${comment.user_name || 'unknown_user'}</div>
+            <div class="comment-text">${comment.text}</div>
+            <div class="comment-time">${comment.created_at}</div>
+          </div>
+        `;
+        commentsList.appendChild(commentEl);
+      });
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      commentsList.innerHTML = '<div class="text-center text-muted py-4">Error loading comments. Please try again.</div>';
+    });
+}
+
+// CSRF token helper
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+</script>
+
+            <!-- /.content -->
+        </div>
+        <!-- /.content-wrapper -->
+        <footer class="main-footer">
+    &copy; 2025 - <strong>Circuit Management System</strong>
+    from Madenet.site
+    <div class="float-right d-none d-sm-inline-block">
+       Ver.1.0
+    </div>
+</footer>
+
+
+    </div>
+    <!-- ./wrapper -->
+    <!-- jQuery -->
+    <script src="/static/plugins/jquery/jquery.min.js "></script>
+    <!-- jQuery UI 1.11.4 -->
+    <script src="/static/plugins/jquery-ui/jquery-ui.min.js "></script>
+    <!-- Resolve conflict in jQuery UI tooltip with Bootstrap tooltip -->
+    <script>
+        $.widget.bridge('uibutton', $.ui.button)
+    </script>
+    <!-- Bootstrap 4 -->
+    <script src="/static/plugins/bootstrap/js/bootstrap.bundle.min.js "></script>
+    <!-- ChartJS -->
+    <script src="/static/plugins/chart.js/Chart.min.js "></script>
+    <!-- Sparkline -->
+    <script src="/static/plugins/sparklines/sparkline.js "></script>
+ 
+    <!-- jQuery Knob Chart -->
+    <script src="/static/plugins/jquery-knob/jquery.knob.min.js "></script>
+    <!-- daterangepicker -->
+    <script src="/static/plugins/moment/moment.min.js "></script>
+    <script src="/static/plugins/daterangepicker/daterangepicker.js "></script>
+    <!-- Tempusdominus Bootstrap 4 -->
+    <script src="/static/plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js "></script>
+
+    <!-- overlayScrollbars -->
+    <script src="/static/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js "></script>
+    <!-- AdminLTE App -->
+    <script src="/static/dist/js/adminlte.js "></script>
+    <!-- AdminLTE dashboard demo (This is only for demo purposes) -->
+    <script src="/static/dist/js/pages/dashboard.js "></script>
+    <!-- AdminLTE for demo purposes -->
+    <script src="/static/dist/js/demo.js "></script>
+    
+
+    
+</body>
+
+</html>
