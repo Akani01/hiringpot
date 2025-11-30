@@ -3939,7 +3939,7 @@ def api_add_document(request):
 @parser_classes([JSONParser, MultiPartParser])
 def api_admin_jobs(request):
     """Admin job management - list all jobs and create new ones"""
-    if not has_admin_access(request.user):  # FIXED: Use has_admin_access
+    if not has_admin_access(request.user):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     if request.method == 'GET':
@@ -3947,8 +3947,7 @@ def api_admin_jobs(request):
         if has_business_access(request.user) and not request.user.is_superuser:
             try:
                 business_profile = BusinessProfile.objects.get(user=request.user)
-                company_name = business_profile.company_name
-                jobs = JobListing.objects.filter(company_name=company_name).order_by('-created_at')
+                jobs = JobListing.objects.filter(business_profile=business_profile).order_by('-created_at')
             except BusinessProfile.DoesNotExist:
                 jobs = JobListing.objects.none()
         else:
@@ -3966,11 +3965,10 @@ def api_admin_jobs(request):
         if has_business_access(request.user) and not request.user.is_superuser:
             try:
                 business_profile = BusinessProfile.objects.get(user=request.user)
-                company_name = business_profile.company_name
-                total_jobs = JobListing.objects.filter(company_name=company_name).count()
-                published_jobs = JobListing.objects.filter(company_name=company_name, status='published').count()
-                draft_jobs = JobListing.objects.filter(company_name=company_name, status='draft').count()
-                archived_jobs = JobListing.objects.filter(company_name=company_name, status='closed').count()
+                total_jobs = JobListing.objects.filter(business_profile=business_profile).count()
+                published_jobs = JobListing.objects.filter(business_profile=business_profile, status='published').count()
+                draft_jobs = JobListing.objects.filter(business_profile=business_profile, status='draft').count()
+                archived_jobs = JobListing.objects.filter(business_profile=business_profile, status='closed').count()
             except BusinessProfile.DoesNotExist:
                 total_jobs = published_jobs = draft_jobs = archived_jobs = 0
         else:
@@ -3999,6 +3997,7 @@ def api_admin_jobs(request):
             try:
                 business_profile = BusinessProfile.objects.get(user=request.user)
                 data['company_name'] = business_profile.company_name
+                data['business_profile'] = business_profile.id
                 
                 # Auto-populate company logo from business profile if not provided
                 if not data.get('company_logo') and business_profile.company_logo:
@@ -4038,14 +4037,12 @@ def api_admin_jobs(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 @parser_classes([JSONParser, MultiPartParser])
 def api_admin_job_detail(request, job_id):
     """Admin job detail management - get, update, or delete specific job"""
-    if not has_admin_access(request.user):  # FIXED: Use has_admin_access
+    if not has_admin_access(request.user):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
@@ -4055,7 +4052,7 @@ def api_admin_job_detail(request, job_id):
         if has_business_access(request.user) and not request.user.is_superuser:
             try:
                 business_profile = BusinessProfile.objects.get(user=request.user)
-                if job.company_name != business_profile.company_name:
+                if job.business_profile != business_profile:
                     return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
             except BusinessProfile.DoesNotExist:
                 return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
@@ -4116,11 +4113,12 @@ def api_admin_job_detail(request, job_id):
             'message': 'Job deleted successfully'
         })
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def api_admin_job_status(request, job_id):
     """Update job status (publish, unpublish, archive, etc.)"""
-    if not has_admin_access(request.user):  # FIXED: Use has_admin_access
+    if not has_admin_access(request.user):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
@@ -4130,7 +4128,7 @@ def api_admin_job_status(request, job_id):
         if has_business_access(request.user) and not request.user.is_superuser:
             try:
                 business_profile = BusinessProfile.objects.get(user=request.user)
-                if job.company_name != business_profile.company_name:
+                if job.business_profile != business_profile:
                     return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
             except BusinessProfile.DoesNotExist:
                 return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
@@ -4162,11 +4160,13 @@ def api_admin_job_status(request, job_id):
         'job': JobListingSerializer(job, context={'request': request}).data
     })
 
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_admin_job_applications(request, job_id):
     """Get all applications for a specific job"""
-    if not has_admin_access(request.user):  # FIXED: Use has_admin_access
+    if not has_admin_access(request.user):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
@@ -4176,7 +4176,7 @@ def api_admin_job_applications(request, job_id):
         if has_business_access(request.user) and not request.user.is_superuser:
             try:
                 business_profile = BusinessProfile.objects.get(user=request.user)
-                if job.company_name != business_profile.company_name:
+                if job.business_profile != business_profile:
                     return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
             except BusinessProfile.DoesNotExist:
                 return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
@@ -4210,15 +4210,27 @@ def api_admin_job_applications(request, job_id):
         'total_applications': len(application_data)
     })
 
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def api_admin_application_status(request, application_id):
     """Update application status"""
-    if not has_admin_access(request.user):  # FIXED: Use has_admin_access
+    if not has_admin_access(request.user):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
         application = Application.objects.get(id=application_id)
+        
+        # Business users can only update applications for their own jobs
+        if has_business_access(request.user) and not request.user.is_superuser:
+            try:
+                business_profile = BusinessProfile.objects.get(user=request.user)
+                if application.job_listing.business_profile != business_profile:
+                    return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+            except BusinessProfile.DoesNotExist:
+                return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+                
     except Application.DoesNotExist:
         return Response({
             'success': False,
