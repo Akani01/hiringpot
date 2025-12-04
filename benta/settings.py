@@ -162,6 +162,17 @@ STORAGES = {
     },
 }
 
+
+MAX_UPLOAD_SIZE = 314572800  # 300MB in bytes
+DATA_UPLOAD_MAX_MEMORY_SIZE = 314572800  # 300MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 314572800  # 300MB
+
+# Add to Django settings
+FILE_UPLOAD_HANDLERS = [
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+]
+
 # MEDIA is on AWS
 MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/mediafiles/"
 

@@ -4,6 +4,11 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
 import uuid  # Add this import
 import psutil  # for system health check
+from django.db.models import Count, Q
+from django.utils import timezone
+from django.core.cache import cache
+from rest_framework.response import Response
+from rest_framework import status
 import time
 from rest_framework.parsers import FormParser
 from rest_framework import status
@@ -182,8 +187,15 @@ class NotificationService:
 
 # HTML PAGE VIEWS
 def home_page(request):
-    """Render home page"""
-    return render(request, 'hiring/home.html')
+    """Render home page with feed"""
+    context = {
+        'page_title': 'Home - JobPortal',
+        'show_feed': True,
+        'user_authenticated': request.user.is_authenticated,
+        'user_type': request.user.user_type if request.user.is_authenticated else None
+    }
+    return render(request, 'hiring/home.html', context)
+
 
 def profile_page(request):
     """Render profile management page"""
@@ -5981,3 +5993,1664 @@ def api_record_business_profile_view(request, business_id):
         
     except BusinessProfile.DoesNotExist:
         return Response({'success': False, 'error': 'Business not found'})
+
+
+#==================== post functions ======================
+
+# ==================== POST FEED SYSTEM ====================
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_home_feed(request):
+    """Get posts for home page feed with pagination and filtering - ALL users"""
+    try:
+        # Get and validate query parameters
+        try:
+            page = max(1, int(request.GET.get('page', 1)))
+            page_size = min(100, max(1, int(request.GET.get('page_size', 10))))
+        except ValueError:
+            return error_response('Invalid page or page_size parameter')
+        
+        post_type = request.GET.get('type', 'all')
+        sort_by = request.GET.get('sort', 'newest')
+        search = request.GET.get('search', '').strip()
+        
+        # Validate parameters
+        if post_type not in ALLOWED_POST_TYPES:
+            return error_response(
+                f'Invalid post type. Allowed: {", ".join(ALLOWED_POST_TYPES)}'
+            )
+        
+        if sort_by not in ALLOWED_SORT_OPTIONS:
+            return error_response(
+                f'Invalid sort option. Allowed: {", ".join(ALLOWED_SORT_OPTIONS)}'
+            )
+        
+        # Apply visibility filters for ALL users
+        visibility_filters = get_user_visibility_filters(request.user)
+        posts = Post.objects.filter(visibility_filters)
+        
+        # Filter by post type
+        if post_type != 'all':
+            posts = posts.filter(post_type=post_type)
+        
+        # Search filter (case-insensitive)
+        if search:
+            search_filter = (
+                Q(title__icontains=search) |
+                Q(content__icontains=search) |
+                Q(tags__icontains=search) |
+                Q(author__username__icontains=search) |
+                Q(author__first_name__icontains=search) |
+                Q(author__last_name__icontains=search)
+            )
+            posts = posts.filter(search_filter)
+        
+        # Apply sorting
+        if sort_by == 'popular':
+            # Calculate popularity score
+            posts = posts.annotate(
+                popularity_score=(
+                    Count('likes') + 
+                    Count('comments') * 2 + 
+                    F('views') * 0.1 + 
+                    F('shares') * 3
+                )
+            ).order_by('-popularity_score', '-created_at')
+        elif sort_by == 'top':
+            # Top posts based on rating
+            posts = posts.filter(rating_count__gte=3).order_by('-average_rating', '-created_at')
+        else:  # newest
+            posts = posts.order_by('-created_at')
+        
+        # Get paginated data using helper
+        paginated_data = get_paginated_data(
+            queryset=posts,
+            page=page,
+            page_size=page_size,
+            serializer_class=PostSerializer,
+            context={'request': request}
+        )
+        
+        # Get user stats if authenticated
+        user_stats = None
+        if request.user.is_authenticated:
+            try:
+                user = request.user
+                
+                # Check user type based on your custom user model
+                if hasattr(user, 'user_type'):
+                    if user.user_type == 'applicant':
+                        try:
+                            profile = ApplicantProfile.objects.get(user=user)
+                            user_stats = {
+                                'profile_completeness': getattr(profile, 'profile_completeness', 0),
+                                'applications_count': getattr(profile.applications, 'count', lambda: 0)(),
+                                'skills_count': getattr(profile.skills, 'count', lambda: 0)() if hasattr(profile, 'skills') else 0
+                            }
+                        except ApplicantProfile.DoesNotExist:
+                            user_stats = {'error': 'Applicant profile not found'}
+                    
+                    elif user.user_type == 'business':
+                        try:
+                            business_profile = BusinessProfile.objects.get(user=user)
+                            user_stats = {
+                                'company_name': business_profile.company_name,
+                                'jobs_count': JobListing.objects.filter(
+                                    company=business_profile
+                                ).count() if hasattr(JobListing, 'company') else 0
+                            }
+                        except BusinessProfile.DoesNotExist:
+                            user_stats = {'error': 'Business profile not found'}
+                    
+                    else:  # admin, staff, or other types
+                        user_stats = {
+                            'user_type': user.user_type,
+                            'is_staff': user.is_staff,
+                            'is_superuser': user.is_superuser,
+                            'total_posts': Post.objects.filter(author=user).count()
+                        }
+                else:
+                    # Fallback for users without user_type
+                    user_stats = {
+                        'username': user.username,
+                        'is_staff': user.is_staff,
+                        'is_superuser': user.is_superuser
+                    }
+                    
+            except Exception as e:
+                logger.warning(f"Could not fetch user stats: {str(e)}")
+                user_stats = {'error': 'Could not load stats'}
+        
+        return Response({
+            'success': True,
+            'posts': paginated_data['data'],
+            'pagination': paginated_data['pagination'],
+            'filters': {
+                'current_type': post_type,
+                'current_sort': sort_by,
+                'search_query': search if search else None,
+                'allowed_types': ALLOWED_POST_TYPES,
+                'allowed_sort_options': ALLOWED_SORT_OPTIONS
+            },
+            'user_stats': user_stats,
+            'user_info': {
+                'is_authenticated': request.user.is_authenticated,
+                'username': request.user.username if request.user.is_authenticated else None,
+                'user_type': getattr(request.user, 'user_type', None) if request.user.is_authenticated else None
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error loading home feed: {str(e)}", exc_info=True)
+        return error_response(
+            'Failed to load feed. Please try again later.',
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_post_like_dislike(request, post_id):
+    """Like, dislike, or remove reaction from a post - Using your existing ManyToMany fields"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        
+        # Check if user can view this post
+        if not can_user_view_post(post, request.user):
+            return error_response(
+                'You do not have permission to interact with this post',
+                status_code=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get action from request
+        action = request.data.get('action', '').lower()
+        
+        if action not in ['like', 'dislike', 'remove']:
+            return error_response('Invalid action. Use "like", "dislike", or "remove"')
+        
+        # Process the action
+        if action == 'like':
+            # Remove from dislikes if present
+            post.dislikes.remove(request.user)
+            # Add to likes
+            post.likes.add(request.user)
+            message = 'Post liked'
+            
+        elif action == 'dislike':
+            # Remove from likes if present
+            post.likes.remove(request.user)
+            # Add to dislikes
+            post.dislikes.add(request.user)
+            message = 'Post disliked'
+            
+        else:  # remove
+            # Remove from both
+            post.likes.remove(request.user)
+            post.dislikes.remove(request.user)
+            message = 'Reaction removed'
+        
+        # Refresh from database to get accurate counts
+        post.refresh_from_db()
+        
+        # Get counts
+        likes_count = post.likes.count()
+        dislikes_count = post.dislikes.count()
+        
+        # Create notification for like (not for dislike or remove)
+        if action == 'like' and post.author != request.user:
+            try:
+                # Create alert based on user type
+                if hasattr(post.author, 'applicantprofile'):
+                    Alert.objects.create(
+                        applicant=post.author.applicantprofile,
+                        title="New Like",
+                        message=f"{request.user.username} liked your post: '{post.title[:50]}...'"
+                    )
+                elif hasattr(post.author, 'business_profile'):
+                    BusinessAlert.objects.create(
+                        business=post.author.business_profile,
+                        title="New Like",
+                        message=f"{request.user.username} liked your post: '{post.title[:50]}...'",
+                        alert_type='like'
+                    )
+            except Exception as notify_error:
+                logger.warning(f"Notification error (non-critical): {notify_error}")
+        
+        return success_response(message, {
+            'likes_count': likes_count,
+            'dislikes_count': dislikes_count,
+            'user_has_liked': post.likes.filter(id=request.user.id).exists(),
+            'user_has_disliked': post.dislikes.filter(id=request.user.id).exists(),
+            'action_taken': action
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in post like/dislike: {str(e)}", exc_info=True)
+        return error_response(
+            'Failed to process reaction',
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+
+
+def error_response(message, status_code=status.HTTP_400_BAD_REQUEST):
+    """Helper function for error responses"""
+    return {
+        'success': False,
+        'error': message
+    }
+
+def success_response(message, data=None, status_code=status.HTTP_200_OK):
+    """Helper function for success responses"""
+    response = {
+        'success': True,
+        'message': message
+    }
+    if data is not None:
+        response.update(data)
+    return response
+
+def can_user_view_post(post, user):
+    """Check if user can view a post"""
+    if not user.is_authenticated:
+        return post.visibility == 'public'
+    
+    if post.visibility == 'public':
+        return True
+    elif post.visibility == 'private':
+        return user == post.author
+    elif post.visibility == 'company':
+        return user == post.author or (user.user_type == 'admin' and post.company and post.company.user == user)
+    elif post.visibility == 'connections':
+        return user == post.author  # You can add more logic here later
+    return False
+
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def api_post_comments(request, post_id):
+    """Get or add comments to a post"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        
+        # Check if user can view this post
+        if not can_user_view_post(post, request.user):
+            return Response({
+                'success': False,
+                'error': 'You do not have permission to view comments on this post'
+            }, status=403)
+        
+        if request.method == 'GET':
+            # Get all comments for this post (no parent = top-level comments)
+            comments = Comment.objects.filter(post=post, parent_comment__isnull=True).order_by('-created_at')
+            
+            # Serialize comments
+            from .serializers import CommentSerializer
+            serializer = CommentSerializer(comments, many=True, context={'request': request})
+            
+            return Response({
+                'success': True,
+                'message': 'Comments loaded',
+                'comments': serializer.data,
+                'total_comments': post.comment_count,
+                'post_id': post_id,
+                'post_title': post.title
+            }, status=200)
+        
+        elif request.method == 'POST':
+            # Get comment content from request
+            content = request.data.get('content', '').strip()
+            if not content:
+                return Response({
+                    'success': False,
+                    'error': 'Comment cannot be empty'
+                }, status=400)
+            
+            # Check for parent comment ID
+            parent_comment_id = request.data.get('parent_comment_id')
+            parent_comment = None
+            
+            if parent_comment_id:
+                try:
+                    parent_comment = Comment.objects.get(id=parent_comment_id, post=post)
+                except Comment.DoesNotExist:
+                    return Response({
+                        'success': False,
+                        'error': 'Parent comment not found'
+                    }, status=404)
+            
+            # Create the comment
+            comment = Comment.objects.create(
+                post=post,
+                author=request.user,
+                content=content,
+                parent_comment=parent_comment
+            )
+            
+            # UPDATE COMMENT COUNT ON POST
+            post.comment_count = Comment.objects.filter(post=post).count()
+            post.save(update_fields=['comment_count'])
+            
+            # Create notification for post author (if not commenting on own post)
+            if post.author != request.user:
+                try:
+                    if hasattr(post.author, 'applicantprofile'):
+                        Alert.objects.create(
+                            applicant=post.author.applicantprofile,
+                            title="New Comment",
+                            message=f"{request.user.username} commented on your post: '{post.title[:50]}...'"
+                        )
+                    elif hasattr(post.author, 'business_profile'):
+                        BusinessAlert.objects.create(
+                            business=post.author.business_profile,
+                            title="New Comment",
+                            message=f"{request.user.username} commented on your post: '{post.title[:50]}...'",
+                            alert_type='comment'
+                        )
+                except Exception as notify_error:
+                    logger.warning(f"Notification error: {notify_error}")
+            
+            # Also notify parent comment author if replying
+            if parent_comment and parent_comment.author != request.user:
+                try:
+                    if hasattr(parent_comment.author, 'applicantprofile'):
+                        Alert.objects.create(
+                            applicant=parent_comment.author.applicantprofile,
+                            title="Reply to Your Comment",
+                            message=f"{request.user.username} replied to your comment on post: '{post.title[:50]}...'"
+                        )
+                    elif hasattr(parent_comment.author, 'business_profile'):
+                        BusinessAlert.objects.create(
+                            business=parent_comment.author.business_profile,
+                            title="Reply to Your Comment",
+                            message=f"{request.user.username} replied to your comment on post: '{post.title[:50]}...'",
+                            alert_type='comment'
+                        )
+                except Exception as notify_error:
+                    logger.warning(f"Notification error: {notify_error}")
+            
+            # Serialize the new comment
+            from .serializers import CommentSerializer
+            serializer = CommentSerializer(comment, context={'request': request})
+            
+            return Response({
+                'success': True,
+                'message': 'Comment added successfully',
+                'comment': serializer.data,
+                'comment_count': post.comment_count
+            }, status=201)
+            
+    except Exception as e:
+        logger.error(f"Error in post comments: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': 'Failed to process comments'
+        }, status=500)
+    
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_job_like_dislike(request, job_id):
+    """Like, dislike, or remove reaction from a job posting - Using your existing ManyToMany fields"""
+    try:
+        job = get_object_or_404(JobListing, id=job_id)
+        
+        # Get action from request
+        action = request.data.get('action', '').lower()
+        
+        if action not in ['like', 'dislike', 'remove']:
+            return error_response('Invalid action. Use "like", "dislike", or "remove"')
+        
+        # Process the action using your existing ManyToMany fields
+        if action == 'like':
+            # Remove from dislikes if present
+            job.disliked_by.remove(request.user)
+            # Add to likes
+            job.liked_by.add(request.user)
+            message = 'Job liked'
+            
+        elif action == 'dislike':
+            # Remove from likes if present
+            job.liked_by.remove(request.user)
+            # Add to dislikes
+            job.disliked_by.add(request.user)
+            message = 'Job disliked'
+            
+        else:  # remove
+            # Remove from both
+            job.liked_by.remove(request.user)
+            job.disliked_by.remove(request.user)
+            message = 'Reaction removed'
+        
+        # Refresh from database
+        job.refresh_from_db()
+        
+        # Get updated counts
+        likes_count = job.liked_by.count()
+        dislikes_count = job.disliked_by.count()
+        
+        # Create notification for like (if job creator is different from liker)
+        if action == 'like' and hasattr(job, 'created_by') and job.created_by != request.user:
+            try:
+                if hasattr(job.created_by, 'business_profile'):
+                    BusinessAlert.objects.create(
+                        business=job.created_by.business_profile,
+                        title="Job Liked",
+                        message=f"{request.user.username} liked your job: '{job.title[:50]}...'",
+                        alert_type='like'
+                    )
+            except Exception as notify_error:
+                logger.warning(f"Notification error (non-critical): {notify_error}")
+        
+        return success_response(message, {
+            'likes_count': likes_count,
+            'dislikes_count': dislikes_count,
+            'user_has_liked': job.liked_by.filter(id=request.user.id).exists(),
+            'user_has_disliked': job.disliked_by.filter(id=request.user.id).exists(),
+            'action_taken': action
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in job like/dislike: {str(e)}", exc_info=True)
+        return error_response(
+            'Failed to process reaction',
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+
+#post function to post the job updates
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, JSONParser])
+def api_posts(request):
+    """Get ALL posts or create a new post"""
+    
+    # ===== GET REQUEST =====
+    if request.method == 'GET':
+        try:
+            # Get query parameters
+            page = int(request.GET.get('page', 1))
+            page_size = int(request.GET.get('page_size', 10))
+            post_type = request.GET.get('type', 'all')
+            show_all = request.GET.get('show_all', 'false').lower() == 'true'
+            
+            # Get posts - ALL posts visible to user
+            if show_all:
+                # Show all public posts and user's own posts
+                posts = Post.objects.filter(
+                    models.Q(is_published=True) | 
+                    models.Q(author=request.user)
+                ).distinct()
+            else:
+                # Show only user's own posts
+                posts = Post.objects.filter(author=request.user)
+            
+            # Filter by post type
+            if post_type != 'all':
+                posts = posts.filter(post_type=post_type)
+            
+            # Apply pagination
+            total_posts = posts.count()
+            total_pages = (total_posts + page_size - 1) // page_size
+            
+            start_index = (page - 1) * page_size
+            end_index = start_index + page_size
+            paginated_posts = posts.order_by('-created_at')[start_index:end_index]
+            
+            # Serialize posts
+            serializer = PostSerializer(
+                paginated_posts, 
+                many=True, 
+                context={'request': request}
+            )
+            
+            return Response({
+                'success': True,
+                'posts': serializer.data,
+                'pagination': {
+                    'current_page': page,
+                    'total_pages': total_pages,
+                    'total_posts': total_posts,
+                    'page_size': page_size
+                },
+                'show_all': show_all
+            })
+            
+        except Exception as e:
+            logger.error(f"Error loading posts: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Failed to load posts'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    # ===== POST REQUEST =====
+    elif request.method == 'POST':
+        """Create a new post - ANY authenticated user can post"""
+        try:
+            # Log request details for debugging
+            print(f"\n{'='*50}")
+            print(f"POST REQUEST FROM: {request.user.username}")
+            print(f"User Type: {request.user.user_type}")
+            print(f"Data fields: {list(request.data.keys())}")
+            print(f"{'='*50}\n")
+            
+            # Create a mutable copy of request.data
+            post_data = request.data.copy()
+            
+            # Check if title is provided
+            if 'title' not in post_data or not post_data.get('title'):
+                # Try to generate a title from content
+                content = post_data.get('content', '')
+                if content:
+                    # Generate title from first few words of content
+                    words = content.strip().split()[:5]
+                    generated_title = ' '.join(words) + '...'
+                    post_data['title'] = generated_title
+                    print(f"Generated title: {generated_title}")
+                else:
+                    return Response({
+                        'success': False,
+                        'error': 'Title is required. Please provide a title for your post.',
+                        'tip': 'Either add a "title" field or ensure you have content to auto-generate title'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Add default values if not provided
+            if 'post_type' not in post_data:
+                post_data['post_type'] = 'general'
+            
+            if 'visibility' not in post_data:
+                post_data['visibility'] = 'public'
+            
+            if 'is_published' not in post_data:
+                post_data['is_published'] = True
+            
+            print(f"Final post data: {post_data}")
+            
+            # Create serializer with context
+            serializer = PostCreateSerializer(
+                data=post_data,
+                context={'request': request}
+            )
+            
+            # Validate the data
+            if serializer.is_valid():
+                print(f"Serializer is VALID")
+                print(f"Validated data: {serializer.validated_data}")
+                
+                # Save the post
+                post = serializer.save(author=request.user)
+                
+                print(f"✓ Post created successfully! ID: {post.id}")
+                print(f"Post created successfully! ID: {post.id}, Title: '{post.title}'")
+                
+                # Create notification if published
+                if post.is_published:
+                    try:
+                        # For business users
+                        if hasattr(request.user, 'business_profile'):
+                            BusinessAlert.objects.create(
+                                business=request.user.business_profile,
+                                title="New Post Published",
+                                message=f"Your post '{post.title}' has been published successfully.",
+                                alert_type='custom'
+                            )
+                        # For applicants
+                        elif hasattr(request.user, 'applicantprofile'):
+                            Alert.objects.create(
+                                applicant=request.user.applicantprofile,
+                                title="New Post Published",
+                                message=f"Your post '{post.title}' has been published successfully."
+                            )
+                        # For admins/superusers without profiles
+                        else:
+                            print(f"Post published by admin/superuser: {post.title}")
+                    except Exception as notify_error:
+                        print(f"Notification error (non-critical): {notify_error}")
+                        # Don't fail the post creation because of notification error
+                
+                # Increment user activity
+                request.user.last_activity = timezone.now()
+                request.user.save()
+                
+                # Get the full post data for response
+                post_serializer = PostSerializer(post, context={'request': request})
+                
+                return Response({
+                    'success': True,
+                    'message': 'Post created successfully!',
+                    'post': post_serializer.data,
+                    'user_info': {
+                        'username': request.user.username,
+                        'user_type': request.user.user_type,
+                        'is_superuser': request.user.is_superuser
+                    }
+                }, status=status.HTTP_201_CREATED)
+            
+            else:
+                # Validation failed
+                print(f"SERIALIZER ERRORS: {serializer.errors}")
+                
+                # Format better error messages
+                error_list = []
+                for field, errors in serializer.errors.items():
+                    if isinstance(errors, list):
+                        for error in errors:
+                            error_list.append(f"{field}: {error}")
+                    else:
+                        error_list.append(f"{field}: {errors}")
+                
+                return Response({
+                    'success': False,
+                    'message': 'Please fix the errors below',
+                    'errors': serializer.errors,
+                    'error_list': error_list,
+                    'required_fields': ['title', 'content'],
+                    'tip': 'Make sure you include both "title" and "content" fields in your request'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            # Log the full error with traceback
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"\n{'!'*50}")
+            print(f"ERROR in api_posts POST:")
+            print(f"Error: {str(e)}")
+            print(f"{'!'*50}\n")
+            
+            logger.error(f"Error creating post: {str(e)}\n{error_details}")
+            
+            return Response({
+                'success': False,
+                'message': 'An error occurred while creating your post',
+                'error': str(e),
+                'user': request.user.username if request.user else 'Anonymous'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, JSONParser])
+def api_post_detail(request, post_id):
+    """Get, update, or delete a specific post"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        
+        # Check if user can access this post
+        if not post.can_user_view(request.user):
+            return Response({
+                'success': False,
+                'error': 'You do not have permission to access this post'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        if request.method == 'GET':
+            # Increment view count if not the author
+            if request.user != post.author:
+                post.increment_views()
+            
+            serializer = PostSerializer(post, context={'request': request})
+            
+            # Get comments for this post
+            comments = Comment.objects.filter(
+                post=post, 
+                parent_comment__isnull=True
+            ).order_by('-created_at')
+            comment_serializer = CommentSerializer(
+                comments, 
+                many=True, 
+                context={'request': request}
+            )
+            
+            return Response({
+                'success': True,
+                'post': serializer.data,
+                'comments': comment_serializer.data,
+                'can_edit': request.user == post.author or request.user.is_staff,
+                'can_delete': request.user == post.author or request.user.is_staff
+            })
+        
+        elif request.method == 'PUT':
+            # Check if user can edit
+            if request.user != post.author and not request.user.is_staff:
+                return Response({
+                    'success': False,
+                    'error': 'You do not have permission to edit this post'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            serializer = PostUpdateSerializer(
+                post, 
+                data=request.data, 
+                partial=True,
+                context={'request': request}
+            )
+            
+            if serializer.is_valid():
+                updated_post = serializer.save()
+                
+                return Response({
+                    'success': True,
+                    'message': 'Post updated successfully!',
+                    'post': PostSerializer(updated_post, context={'request': request}).data
+                })
+            
+            return Response({
+                'success': False,
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        elif request.method == 'DELETE':
+            # Check if user can delete
+            if request.user != post.author and not request.user.is_staff:
+                return Response({
+                    'success': False,
+                    'error': 'You do not have permission to delete this post'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            post_title = post.title
+            post.delete()
+            
+            return Response({
+                'success': True,
+                'message': f'Post "{post_title}" deleted successfully'
+            })
+            
+    except Exception as e:
+        logger.error(f"Error in post detail view: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to process request'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_post_like_dislike(request, post_id):
+    """Like, dislike, or remove reaction from a post"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        
+        if not post.can_user_view(request.user):
+            return Response({
+                'success': False,
+                'error': 'You do not have permission to interact with this post'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = LikeDislikeSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        action = serializer.validated_data['action']
+        
+        if action == 'like':
+            # Remove from dislikes if present
+            post.dislikes.remove(request.user)
+            # Add to likes
+            post.likes.add(request.user)
+            message = 'Post liked'
+            
+        elif action == 'dislike':
+            # Remove from likes if present
+            post.likes.remove(request.user)
+            # Add to dislikes
+            post.dislikes.add(request.user)
+            message = 'Post disliked'
+            
+        else:  # remove
+            # Remove from both
+            post.likes.remove(request.user)
+            post.dislikes.remove(request.user)
+            message = 'Reaction removed'
+        
+        # Update like/dislike counts
+        likes_count = post.likes.count()
+        dislikes_count = post.dislikes.count()
+        
+        return Response({
+            'success': True,
+            'message': message,
+            'likes_count': likes_count,
+            'dislikes_count': dislikes_count,
+            'user_has_liked': post.likes.filter(id=request.user.id).exists(),
+            'user_has_disliked': post.dislikes.filter(id=request.user.id).exists()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in post like/dislike: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to process reaction'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_feed_posts(request):
+    """Get feed of all public posts"""
+    try:
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 20))
+        
+        # Get all public posts and posts from people user follows
+        posts = Post.objects.filter(
+            is_published=True,
+            visibility='public'
+        ).order_by('-created_at')
+        
+        # Apply pagination
+        total_posts = posts.count()
+        total_pages = (total_posts + page_size - 1) // page_size
+        
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size
+        paginated_posts = posts[start_index:end_index]
+        
+        serializer = PostSerializer(
+            paginated_posts, 
+            many=True, 
+            context={'request': request}
+        )
+        
+        return Response({
+            'success': True,
+            'posts': serializer.data,
+            'pagination': {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_posts': total_posts,
+                'page_size': page_size
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error loading feed posts: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to load feed'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_post_share(request, post_id):
+    """Share a post"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        
+        if not post.can_user_view(request.user):
+            return Response({
+                'success': False,
+                'error': 'You do not have permission to share this post'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Increment share count
+        post.increment_shares()
+        
+        return Response({
+            'success': True,
+            'message': 'Post shared successfully',
+            'shares_count': post.shares
+        })
+        
+    except Exception as e:
+        logger.error(f"Error sharing post: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to share post'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_post_rating(request, post_id):
+    """Rate a post (1-5 stars)"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        
+        if not post.can_user_view(request.user):
+            return Response({
+                'success': False,
+                'error': 'You do not have permission to rate this post'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = RatingSerializer(
+            data=request.data, 
+            context={'request': request, 'post': post}
+        )
+        
+        if serializer.is_valid():
+            rating = serializer.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Rating submitted successfully',
+                'average_rating': post.average_rating,
+                'rating_count': post.rating_count,
+                'user_rating': rating.rating
+            })
+        
+        return Response({
+            'success': False,
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Exception as e:
+        logger.error(f"Error rating post: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to submit rating'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def api_post_comments(request, post_id):
+    """Get or add comments to a post"""
+    try:
+        post = get_object_or_404(Post, id=post_id)
+        
+        # Check if user can view this post
+        if not can_user_view_post(post, request.user):
+            return Response({
+                'success': False,
+                'error': 'You do not have permission to view comments on this post'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        if request.method == 'GET':
+            # Get query parameters for pagination
+            page = int(request.GET.get('page', 1))
+            page_size = int(request.GET.get('page_size', 10))
+            
+            # Get all comments for this post (no parent = top-level comments)
+            comments = Comment.objects.filter(post=post, parent_comment__isnull=True)
+            total_comments = comments.count()
+            total_pages = (total_comments + page_size - 1) // page_size
+            
+            # Apply pagination
+            start_index = (page - 1) * page_size
+            end_index = start_index + page_size
+            paginated_comments = comments.order_by('-created_at')[start_index:end_index]
+            
+            # Serialize comments
+            from .serializers import CommentSerializer
+            serializer = CommentSerializer(paginated_comments, many=True, context={'request': request})
+            
+            return Response({
+                'success': True,
+                'message': 'Comments loaded',
+                'comments': serializer.data,
+                'total_comments': total_comments,
+                'pagination': {
+                    'current_page': page,
+                    'total_pages': total_pages,
+                    'page_size': page_size
+                },
+                'post_id': post_id,
+                'post_title': post.title
+            }, status=status.HTTP_200_OK)
+        
+        elif request.method == 'POST':
+            # Get comment content from request
+            content = request.data.get('content', '').strip()
+            if not content:
+                return Response({
+                    'success': False,
+                    'error': 'Comment cannot be empty'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Check for parent comment ID
+            parent_comment_id = request.data.get('parent_comment_id')
+            parent_comment = None
+            
+            if parent_comment_id:
+                try:
+                    parent_comment = Comment.objects.get(id=parent_comment_id, post=post)
+                except Comment.DoesNotExist:
+                    return Response({
+                        'success': False,
+                        'error': 'Parent comment not found'
+                    }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Create the comment
+            comment = Comment.objects.create(
+                post=post,
+                author=request.user,
+                content=content,
+                parent_comment=parent_comment
+            )
+            
+            # UPDATE COMMENT COUNT ON POST
+            post.comment_count = Comment.objects.filter(post=post).count()
+            post.save(update_fields=['comment_count'])
+            
+            # Create notification for post author (if not commenting on own post)
+            if post.author != request.user:
+                try:
+                    if hasattr(post.author, 'applicantprofile'):
+                        Alert.objects.create(
+                            applicant=post.author.applicantprofile,
+                            title="New Comment",
+                            message=f"{request.user.username} commented on your post: '{post.title[:50]}...'"
+                        )
+                    elif hasattr(post.author, 'business_profile'):
+                        BusinessAlert.objects.create(
+                            business=post.author.business_profile,
+                            title="New Comment",
+                            message=f"{request.user.username} commented on your post: '{post.title[:50]}...'",
+                            alert_type='comment'
+                        )
+                except Exception as notify_error:
+                    logger.warning(f"Notification error: {notify_error}")
+            
+            # Also notify parent comment author if replying
+            if parent_comment and parent_comment.author != request.user:
+                try:
+                    if hasattr(parent_comment.author, 'applicantprofile'):
+                        Alert.objects.create(
+                            applicant=parent_comment.author.applicantprofile,
+                            title="Reply to Your Comment",
+                            message=f"{request.user.username} replied to your comment on post: '{post.title[:50]}...'"
+                        )
+                    elif hasattr(parent_comment.author, 'business_profile'):
+                        BusinessAlert.objects.create(
+                            business=parent_comment.author.business_profile,
+                            title="Reply to Your Comment",
+                            message=f"{request.user.username} replied to your comment on post: '{post.title[:50]}...'",
+                            alert_type='comment'
+                        )
+                except Exception as notify_error:
+                    logger.warning(f"Notification error: {notify_error}")
+            
+            # Serialize the new comment
+            from .serializers import CommentSerializer
+            serializer = CommentSerializer(comment, context={'request': request})
+            
+            return Response({
+                'success': True,
+                'message': 'Comment added successfully',
+                'comment': serializer.data,
+                'comment_count': post.comment_count
+            }, status=status.HTTP_201_CREATED)
+            
+    except Exception as e:
+        logger.error(f"Error in post comments: {str(e)}", exc_info=True)
+        return Response({
+            'success': False,
+            'error': 'Failed to process comments'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_post_stats(request):
+    """Get post statistics for dashboard"""
+    try:
+        total_posts = Post.objects.filter(is_published=True).count()
+        total_comments = Comment.objects.count()
+        
+        # Post type distribution
+        post_types = Post.objects.filter(is_published=True).values('post_type').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        # Recent activity
+        recent_posts = Post.objects.filter(is_published=True).order_by('-created_at')[:5]
+        recent_posts_data = PostSerializer(
+            recent_posts, 
+            many=True, 
+            context={'request': request}
+        ).data
+        
+        # Most liked posts
+        most_liked = Post.objects.filter(is_published=True).annotate(
+            likes_count=Count('likes')
+        ).order_by('-likes_count')[:5]
+        
+        most_liked_data = []
+        for post in most_liked:
+            most_liked_data.append({
+                'id': post.id,
+                'title': post.title,
+                'author': post.author.username,
+                'likes_count': post.likes.count(),
+                'post_type': post.post_type
+            })
+        
+        return Response({
+            'success': True,
+            'stats': {
+                'total_posts': total_posts,
+                'total_comments': total_comments,
+                'post_type_distribution': list(post_types),
+                'recent_posts': recent_posts_data,
+                'most_liked_posts': most_liked_data
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting post stats: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to load post statistics'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_user_post_stats(request):
+    """Get user-specific post statistics"""
+    try:
+        user = request.user
+        
+        # User's posts
+        user_posts = Post.objects.filter(author=user)
+        total_posts = user_posts.count()
+        published_posts = user_posts.filter(is_published=True).count()
+        
+        # Engagement stats
+        total_likes = 0
+        total_comments = 0
+        total_views = 0
+        
+        for post in user_posts:
+            total_likes += post.likes.count()
+            total_comments += post.comments.count()
+            total_views += post.views
+        
+        # Recent posts
+        recent_posts = user_posts.order_by('-created_at')[:5]
+        recent_posts_data = PostSerializer(
+            recent_posts, 
+            many=True, 
+            context={'request': request}
+        ).data
+        
+        # Most popular post
+        most_popular = user_posts.annotate(
+            engagement=Count('likes') + Count('comments') + F('shares')
+        ).order_by('-engagement').first()
+        
+        most_popular_data = None
+        if most_popular:
+            most_popular_data = {
+                'id': most_popular.id,
+                'title': most_popular.title,
+                'engagement': most_popular.total_engagement(),
+                'views': most_popular.views
+            }
+        
+        return Response({
+            'success': True,
+            'stats': {
+                'total_posts': total_posts,
+                'published_posts': published_posts,
+                'total_likes': total_likes,
+                'total_comments': total_comments,
+                'total_views': total_views,
+                'recent_posts': recent_posts_data,
+                'most_popular_post': most_popular_data
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting user post stats: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to load your post statistics'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# comment and likes sections
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def api_job_comments(request, job_id):
+    """Get or add comments to a job posting - Using your existing Comment model"""
+    try:
+        job = get_object_or_404(JobListing, id=job_id)
+        
+        if request.method == 'GET':
+            # Get query parameters
+            try:
+                page = max(1, int(request.GET.get('page', 1)))
+                page_size = min(50, max(1, int(request.GET.get('page_size', 20))))
+            except ValueError:
+                return error_response('Invalid page or page_size parameter')
+            
+            # Get comments for this job
+            comments = Comment.objects.filter(
+                job_posting=job,  # Using your actual field name
+                parent_comment__isnull=True  # Only top-level comments
+            ).order_by('-created_at')
+            
+            # Get paginated comments
+            paginated_data = get_paginated_data(
+                queryset=comments,
+                page=page,
+                page_size=page_size,
+                serializer_class=CommentSerializer,
+                context={'request': request}
+            )
+            
+            # Get total comment count
+            total_comments = Comment.objects.filter(job_posting=job).count()
+            
+            return success_response('Comments loaded', {
+                'comments': paginated_data['data'],
+                'pagination': paginated_data['pagination'],
+                'total_comments': total_comments,
+                'job_id': job_id,
+                'job_title': job.title
+            })
+        
+        elif request.method == 'POST':
+            # Validate comment content
+            content = request.data.get('content', '').strip()
+            if not content:
+                return error_response('Comment cannot be empty')
+            
+            # Check for parent comment ID
+            parent_comment_id = request.data.get('parent_comment_id')
+            parent_comment = None
+            
+            if parent_comment_id:
+                try:
+                    parent_comment = Comment.objects.get(id=parent_comment_id, job_posting=job)
+                except Comment.DoesNotExist:
+                    return error_response('Parent comment not found')
+            
+            # Create the comment
+            comment = Comment.objects.create(
+                job_posting=job,
+                author=request.user,
+                content=content,
+                parent_comment=parent_comment
+            )
+            
+            # Create notification for job poster
+            if hasattr(job, 'created_by') and job.created_by != request.user:
+                try:
+                    if hasattr(job.created_by, 'business_profile'):
+                        BusinessAlert.objects.create(
+                            business=job.created_by.business_profile,
+                            title="New Comment on Job",
+                            message=f"{request.user.username} commented on your job: '{job.title[:50]}...'",
+                            alert_type='comment'
+                        )
+                except Exception as notify_error:
+                    logger.warning(f"Notification error (non-critical): {notify_error}")
+            
+            # Also notify parent comment author if replying
+            if parent_comment and parent_comment.author != request.user:
+                try:
+                    if hasattr(parent_comment.author, 'applicantprofile'):
+                        Alert.objects.create(
+                            applicant=parent_comment.author.applicantprofile,
+                            title="Reply to Your Comment",
+                            message=f"{request.user.username} replied to your comment on job: '{job.title[:50]}...'"
+                        )
+                    elif hasattr(parent_comment.author, 'business_profile'):
+                        BusinessAlert.objects.create(
+                            business=parent_comment.author.business_profile,
+                            title="Reply to Your Comment",
+                            message=f"{request.user.username} replied to your comment on job: '{job.title[:50]}...'",
+                            alert_type='comment'
+                        )
+                except Exception as notify_error:
+                    logger.warning(f"Notification error (non-critical): {notify_error}")
+            
+            return success_response(
+                'Comment added successfully',
+                {
+                    'comment': CommentSerializer(comment, context={'request': request}).data
+                },
+                status_code=status.HTTP_201_CREATED
+            )
+            
+    except Exception as e:
+        logger.error(f"Error in job comments: {str(e)}", exc_info=True)
+        return error_response(
+            'Failed to process comments',
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+def rate_limit_user(request, action, limit, period):
+    """Rate limiting helper for all user types"""
+    if not request.user.is_authenticated:
+        return False, "Authentication required"
+    
+    user_id = request.user.id
+    cache_key = f"rate_limit:{action}:{user_id}"
+    
+    # Get current usage
+    current_usage = cache.get(cache_key, [])
+    current_time = time.time()
+    
+    # Clean old entries
+    current_usage = [timestamp for timestamp in current_usage 
+                     if current_time - timestamp < period]
+    
+    # Check if limit exceeded
+    if len(current_usage) >= limit:
+        return True, f"Rate limit exceeded. Try again in {period} seconds"
+    
+    # Add current request
+    current_usage.append(current_time)
+    cache.set(cache_key, current_usage, period)
+    
+    return False, ""
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_job_like_dislike(request, job_id):
+    """Like, dislike, or remove reaction from a job posting"""
+    try:
+        job = get_object_or_404(JobPosting, id=job_id)
+        
+        serializer = LikeDislikeSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        action = serializer.validated_data['action']
+        
+        # Remove existing reactions
+        job.liked_by.remove(request.user)
+        job.disliked_by.remove(request.user)
+        
+        if action == 'like':
+            job.liked_by.add(request.user)
+            message = 'Job liked'
+            
+        elif action == 'dislike':
+            job.disliked_by.add(request.user)
+            message = 'Job disliked'
+            
+        else:  # remove
+            message = 'Reaction removed'
+        
+        # Get updated counts
+        likes_count = job.liked_by.count()
+        dislikes_count = job.disliked_by.count()
+        
+        return Response({
+            'success': True,
+            'message': message,
+            'likes_count': likes_count,
+            'dislikes_count': dislikes_count,
+            'user_has_liked': job.liked_by.filter(id=request.user.id).exists(),
+            'user_has_disliked': job.disliked_by.filter(id=request.user.id).exists()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in job like/dislike: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to process reaction'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_job_listings_with_interactions(request):
+    """Get all job listings with interaction counts"""
+    try:
+        jobs = JobListing.objects.filter(status='published').order_by('-created_at')
+        
+        # Pagination
+        page = request.GET.get('page', 1)
+        paginator = Paginator(jobs, 10)  # 10 jobs per page
+        try:
+            jobs_page = paginator.page(page)
+        except PageNotAnInteger:
+            jobs_page = paginator.page(1)
+        except EmptyPage:
+            jobs_page = paginator.page(paginator.num_pages)
+        
+        serializer = JobListingInteractionSerializer(
+            jobs_page, 
+            many=True, 
+            context={'request': request}
+        )
+        
+        return Response({
+            'success': True,
+            'jobs': serializer.data,
+            'total_pages': paginator.num_pages,
+            'current_page': jobs_page.number,
+            'total_jobs': jobs.count()
+        })
+        
+    except Exception as e:
+        logger.error(f"Error loading jobs with interactions: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to load jobs'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def api_job_interactions(request, job_id):
+    """Get or add interactions (likes, dislikes, comments) for a job"""
+    try:
+        job = get_object_or_404(JobListing, id=job_id)
+        
+        if request.method == 'GET':
+            # Get all interactions for this job
+            interactions = JobInteraction.objects.filter(
+                job_listing=job,
+                parent_interaction__isnull=True  # Only get parent interactions
+            ).order_by('-created_at')
+            
+            serializer = JobInteractionSerializer(
+                interactions, 
+                many=True, 
+                context={'request': request}
+            )
+            
+            # Get counts
+            likes_count = JobInteraction.objects.filter(
+                job_listing=job, 
+                interaction_type='like'
+            ).count()
+            
+            dislikes_count = JobInteraction.objects.filter(
+                job_listing=job, 
+                interaction_type='dislike'
+            ).count()
+            
+            comments_count = JobInteraction.objects.filter(
+                job_listing=job, 
+                interaction_type='comment',
+                parent_interaction__isnull=True
+            ).count()
+            
+            return Response({
+                'success': True,
+                'interactions': serializer.data,
+                'counts': {
+                    'likes': likes_count,
+                    'dislikes': dislikes_count,
+                    'comments': comments_count
+                }
+            })
+        
+        elif request.method == 'POST':
+            data = request.data.copy()
+            data['user'] = request.user.id
+            data['job_listing'] = job_id
+            
+            serializer = JobInteractionSerializer(
+                data=data, 
+                context={'request': request}
+            )
+            
+            if serializer.is_valid():
+                interaction = serializer.save()
+                
+                # For likes/dislikes, remove opposite reaction if exists
+                interaction_type = data.get('interaction_type')
+                if interaction_type in ['like', 'dislike']:
+                    opposite_type = 'dislike' if interaction_type == 'like' else 'like'
+                    
+                    # Delete opposite reaction if exists
+                    JobInteraction.objects.filter(
+                        job_listing=job,
+                        user=request.user,
+                        interaction_type=opposite_type
+                    ).delete()
+                
+                # Get updated counts
+                likes_count = JobInteraction.objects.filter(
+                    job_listing=job, 
+                    interaction_type='like'
+                ).count()
+                
+                dislikes_count = JobInteraction.objects.filter(
+                    job_listing=job, 
+                    interaction_type='dislike'
+                ).count()
+                
+                return Response({
+                    'success': True,
+                    'message': f'Job {interaction_type}d successfully',
+                    'interaction': serializer.data,
+                    'counts': {
+                        'likes': likes_count,
+                        'dislikes': dislikes_count
+                    }
+                }, status=status.HTTP_201_CREATED)
+            
+            return Response({
+                'success': False,
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        logger.error(f"Error in job interactions: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to process interaction'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_job_remove_reaction(request, job_id):
+    """Remove like/dislike from a job"""
+    try:
+        job = get_object_or_404(JobListing, id=job_id)
+        
+        interaction_type = request.data.get('interaction_type')
+        
+        if interaction_type not in ['like', 'dislike']:
+            return Response({
+                'success': False,
+                'error': 'Invalid interaction type'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Delete the interaction
+        deleted_count, _ = JobInteraction.objects.filter(
+            job_listing=job,
+            user=request.user,
+            interaction_type=interaction_type
+        ).delete()
+        
+        if deleted_count > 0:
+            # Get updated counts
+            likes_count = JobInteraction.objects.filter(
+                job_listing=job, 
+                interaction_type='like'
+            ).count()
+            
+            dislikes_count = JobInteraction.objects.filter(
+                job_listing=job, 
+                interaction_type='dislike'
+            ).count()
+            
+            return Response({
+                'success': True,
+                'message': f'Reaction removed successfully',
+                'counts': {
+                    'likes': likes_count,
+                    'dislikes': dislikes_count
+                }
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': 'No reaction found to remove'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+    except Exception as e:
+        logger.error(f"Error removing job reaction: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to remove reaction'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def api_job_comment_replies(request, interaction_id):
+    """Get or add replies to a comment"""
+    try:
+        parent_comment = get_object_or_404(JobInteraction, id=interaction_id)
+        
+        if request.method == 'GET':
+            replies = JobInteraction.objects.filter(
+                parent_interaction=parent_comment
+            ).order_by('created_at')
+            
+            serializer = JobInteractionSerializer(
+                replies, 
+                many=True, 
+                context={'request': request}
+            )
+            
+            return Response({
+                'success': True,
+                'replies': serializer.data
+            })
+        
+        elif request.method == 'POST':
+            data = request.data.copy()
+            data['user'] = request.user.id
+            data['job_listing'] = parent_comment.job_listing.id
+            data['parent_interaction'] = interaction_id
+            data['interaction_type'] = 'comment'  # Replies are always comments
+            
+            serializer = JobInteractionSerializer(
+                data=data, 
+                context={'request': request}
+            )
+            
+            if serializer.is_valid():
+                reply = serializer.save()
+                return Response({
+                    'success': True,
+                    'message': 'Reply added successfully',
+                    'reply': serializer.data
+                }, status=status.HTTP_201_CREATED)
+            
+            return Response({
+                'success': False,
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        logger.error(f"Error in comment replies: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to process replies'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

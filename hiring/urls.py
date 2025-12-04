@@ -160,4 +160,21 @@ urlpatterns = [
     path('api/industries/', views.api_industries, name='api_industries'),
     path('api/company-sizes/', views.api_company_sizes, name='api_company_sizes'),
     path('api/job-categories/', views.api_job_categories, name='api_job_categories'),
+
+
+    #===================== Post Application Processing =====================
+      # Post/Feed URLs
+   # Post/Feed URLs
+    path('api/feed/', views.api_home_feed, name='api_home_feed'),
+    path('api/posts/', views.api_posts, name='api_posts'),
+    path('api/posts/<uuid:post_id>/', views.api_post_detail, name='api_post_detail'),
+    path('api/posts/<uuid:post_id>/like-dislike/', views.api_post_like_dislike, name='api_post_like_dislike'),
+    path('api/posts/<uuid:post_id>/share/', views.api_post_share, name='api_post_share'),
+    path('api/posts/<uuid:post_id>/rate/', views.api_post_rating, name='api_post_rating'),
+    # ADD THIS LINE ↓↓↓
+    path('api/post-comments/<int:post_id>/', views.api_post_comments, name='api_post_comments'),
+    path('api/posts/feed/', views.api_feed_posts, name='api_feed_posts'),
+    # ADD THIS LINE ↑↑↑
+    path('api/posts/stats/', views.api_post_stats, name='api_post_stats'),
+    path('api/posts/user-stats/', views.api_user_post_stats, name='api_user_post_stats'),
 ]

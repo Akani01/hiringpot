@@ -760,3 +760,494 @@ class UserStatusSerializer(serializers.ModelSerializer):
         fields = ['user', 'is_online', 'last_seen', 'typing_to']
 
 
+
+#====================== Post Comment Serializers ======================
+
+class PostAuthorSerializer(serializers.ModelSerializer):
+    """Serializer for author information in posts"""
+    profile_picture = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'username', 'first_name', 'last_name', 'user_type', 'profile_picture']
+    
+    def get_profile_picture(self, obj):
+        # You can implement profile pictures later
+        return None
+
+class PostCompanySerializer(serializers.ModelSerializer):
+    """Serializer for company information in posts"""
+    logo_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = BusinessProfile
+        fields = ['id', 'company_name', 'logo_url']
+    
+    def get_logo_url(self, obj):
+        if obj.company_logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.company_logo.url)
+            return obj.company_logo.url
+        return None
+
+class PostSerializer(serializers.ModelSerializer):
+    author = PostAuthorSerializer(read_only=True)
+    company = PostCompanySerializer(read_only=True)
+    likes_count = serializers.SerializerMethodField()
+    dislikes_count = serializers.SerializerMethodField()
+    comments_count = serializers.SerializerMethodField()
+    user_has_liked = serializers.SerializerMethodField()
+    user_has_disliked = serializers.SerializerMethodField()
+    user_rating = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
+    tags_list = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
+    time_since = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Post
+        fields = [
+            'id', 'author', 'company', 'post_type', 'title', 'content',
+            'image', 'video', 'video_url', 'tags', 'tags_list',
+            'views', 'likes_count', 'dislikes_count', 'comments_count',
+            'shares', 'average_rating', 'rating_count', 'visibility',
+            'created_at', 'updated_at', 'is_published', 'is_edited', 'edited_at',
+            'user_has_liked', 'user_has_disliked', 'user_rating',
+            'image_url', 'video_url', 'can_edit', 'can_delete', 'time_since'
+        ]
+        read_only_fields = [
+            'views', 'likes', 'dislikes', 'shares', 'average_rating', 
+            'rating_count', 'created_at', 'updated_at'
+        ]
+    
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+    
+    def get_dislikes_count(self, obj):
+        return obj.dislikes.count()
+    
+    def get_comments_count(self, obj):
+        return obj.comments.count()
+    
+    def get_user_has_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(id=request.user.id).exists()
+        return False
+    
+    def get_user_has_disliked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.dislikes.filter(id=request.user.id).exists()
+        return False
+    
+    def get_user_rating(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            rating = Rating.objects.filter(post=obj, user=request.user).first()
+            return rating.rating if rating else None
+        return None
+    
+    def get_image_url(self, obj):
+        if obj.image and hasattr(obj.image, 'url'):
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+        return None
+    
+    def get_video_url(self, obj):
+        if obj.video and hasattr(obj.video, 'url'):
+            request = self.context.get('request')
+            return request.build_absolute_uri(obj.video.url) if request else obj.video.url
+        return None
+    
+    def get_tags_list(self, obj):
+        """Convert comma-separated tags to list"""
+        if not obj.tags:
+            return []
+        return [tag.strip() for tag in obj.tags.split(',') if tag.strip()]
+
+    def get_can_edit(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return request.user == obj.author or request.user.is_staff
+        return False
+    
+    def get_can_delete(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return request.user == obj.author or request.user.is_staff
+        return False
+    
+    def get_time_since(self, obj):
+        from django.utils import timezone
+        from django.utils.timesince import timesince
+        
+        now = timezone.now()
+        if obj.created_at:
+            return timesince(obj.created_at, now).split(',')[0] + ' ago'
+        return ''
+
+
+#post create serializer
+class PostCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating posts - ULTRA FLEXIBLE VERSION"""
+    
+    class Meta:
+        model = Post
+        fields = [
+            'post_type', 'title', 'content', 'image', 'video', 
+            'video_url', 'tags', 'visibility', 'is_published'
+        ]
+        extra_kwargs = {
+            'title': {'required': True},  # But we handle this in the view
+            'content': {'required': True},
+            'image': {'required': False, 'allow_null': True},
+            'video': {'required': False, 'allow_null': True},
+            'video_url': {'required': False, 'allow_blank': True},
+            'tags': {'required': False, 'allow_blank': True},
+            'visibility': {'required': False, 'default': 'public'},
+            'is_published': {'required': False, 'default': True},
+            'post_type': {'required': False, 'default': 'general'}
+        }
+    
+    def validate(self, data):
+        """ULTRA SIMPLE validation - ALL users can post ANYTHING"""
+        
+        # Auto-generate title if somehow missing (should be handled in view)
+        if 'title' not in data or not data['title']:
+            content = data.get('content', '')
+            if content:
+                words = content.strip().split()[:5]
+                data['title'] = ' '.join(words) + '...'
+            else:
+                data['title'] = 'New Post'
+        
+        # Ensure content is not empty
+        if 'content' not in data or not data['content']:
+            raise serializers.ValidationError({
+                'content': 'Post content cannot be empty'
+            })
+        
+        # Don't allow both video and video_url
+        if data.get('video') and data.get('video_url'):
+            raise serializers.ValidationError({
+                'video': 'Please upload a video file OR provide a video URL, not both.'
+            })
+        
+        return data
+    
+    def create(self, validated_data):
+        """Create post - SIMPLE AND WORKS"""
+        request = self.context['request']
+        user = request.user
+        
+        print(f"Creating post for user: {user.username}")
+        print(f"Title: {validated_data.get('title', 'No title')}")
+        print(f"Content length: {len(validated_data.get('content', ''))}")
+        
+        # 1. Set the author
+        validated_data['author'] = user
+        
+        # 2. Auto-set company if user has business profile
+        if hasattr(user, 'business_profile'):
+            validated_data['company'] = user.business_profile
+            print(f"Auto-set company: {user.business_profile.company_name}")
+        
+        # 3. Create the post
+        try:
+            post = Post.objects.create(**validated_data)
+            print(f"✓ Post created successfully! ID: {post.id}")
+            return post
+        except Exception as e:
+            print(f"✗ Error creating post: {str(e)}")
+            raise serializers.ValidationError({
+                'non_field_errors': [f"Failed to save post: {str(e)}"]
+            })
+        
+
+class PostUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating posts"""
+    class Meta:
+        model = Post
+        fields = [
+            'title', 'content', 'image', 'video', 
+            'video_url', 'tags', 'visibility', 'is_published'
+        ]
+        extra_kwargs = {
+            'title': {'required': False},
+            'content': {'required': False},
+            'image': {'required': False, 'allow_null': True},
+            'video': {'required': False, 'allow_null': True},
+            'video_url': {'required': False, 'allow_blank': True},
+            'tags': {'required': False, 'allow_blank': True},
+        }
+    
+    def validate(self, data):
+        # Validate file sizes
+        request = self.context['request']
+        
+        if 'image' in request.FILES:
+            image = request.FILES['image']
+            if image.size > 314572800:  # 300MB
+                raise serializers.ValidationError({
+                    'image': 'Image file size cannot exceed 300MB'
+                })
+        
+        if 'video' in request.FILES:
+            video = request.FILES['video']
+            if video.size > 314572800:  # 300MB
+                raise serializers.ValidationError({
+                    'video': 'Video file size cannot exceed 300MB'
+                })
+        
+        # Don't allow both video file and video URL
+        if data.get('video') and data.get('video_url'):
+            raise serializers.ValidationError(
+                "Please upload a video file OR provide a video URL, not both."
+            )
+        
+        return data
+    
+    def update(self, instance, validated_data):
+        # Handle file uploads/removal
+        request = self.context['request']
+        
+        # Handle image
+        if 'image' in request.FILES:
+            validated_data['image'] = request.FILES['image']
+        elif 'image' in validated_data and validated_data['image'] is None:
+            # Remove image if explicitly set to null
+            validated_data['image'] = None
+            if instance.image:
+                instance.image.delete(save=False)
+        
+        # Handle video
+        if 'video' in request.FILES:
+            validated_data['video'] = request.FILES['video']
+        elif 'video' in validated_data and validated_data['video'] is None:
+            # Remove video if explicitly set to null
+            validated_data['video'] = None
+            if instance.video:
+                instance.video.delete(save=False)
+        
+        # Mark as edited
+        validated_data['is_edited'] = True
+        validated_data['edited_at'] = timezone.now()
+        
+        return super().update(instance, validated_data)
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = PostAuthorSerializer(read_only=True)
+    likes_count = serializers.SerializerMethodField()
+    replies_count = serializers.SerializerMethodField()
+    user_has_liked = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
+    time_since = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Comment
+        fields = [
+            'id', 'post', 'author', 'content', 'likes_count',
+            'replies_count', 'parent_comment', 'created_at',
+            'updated_at', 'is_edited', 'user_has_liked',
+            'can_edit', 'can_delete', 'time_since'
+        ]
+    
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+    
+    def get_replies_count(self, obj):
+        return obj.replies.count()
+    
+    def get_user_has_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(id=request.user.id).exists()
+        return False
+    
+    def get_can_edit(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return request.user == obj.author or request.user.is_staff
+        return False
+    
+    def get_can_delete(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return request.user == obj.author or request.user.is_staff
+        return False
+    
+    def get_time_since(self, obj):
+        from django.utils import timezone
+        from django.utils.timesince import timesince
+        
+        now = timezone.now()
+        if obj.created_at:
+            return timesince(obj.created_at, now).split(',')[0] + ' ago'
+        return ''
+
+class CommentCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating comments"""
+    class Meta:
+        model = Comment
+        fields = ['content', 'parent_comment']
+        extra_kwargs = {
+            'content': {'required': True},
+            'parent_comment': {'required': False, 'allow_null': True}
+        }
+    
+    def validate(self, data):
+        # Validate parent comment belongs to same post
+        parent_comment = data.get('parent_comment')
+        post_id = self.context.get('post_id')
+        
+        if parent_comment and parent_comment.post_id != post_id:
+            raise serializers.ValidationError({
+                'parent_comment': 'Parent comment must belong to the same post'
+            })
+        
+        return data
+    
+    def create(self, validated_data):
+        user = self.context['request'].user
+        post_id = self.context['post_id']
+        post = Post.objects.get(id=post_id)
+        
+        validated_data['author'] = user
+        validated_data['post'] = post
+        
+        return super().create(validated_data)
+
+class RatingSerializer(serializers.ModelSerializer):
+    """Serializer for post ratings"""
+    class Meta:
+        model = Rating
+        fields = ['id', 'post', 'rating', 'created_at']
+        read_only_fields = ['user']
+    
+    def validate(self, data):
+        rating = data.get('rating')
+        
+        if rating < 1 or rating > 5:
+            raise serializers.ValidationError({
+                'rating': 'Rating must be between 1 and 5'
+            })
+        
+        return data
+    
+    def create(self, validated_data):
+        user = self.context['request'].user
+        post = validated_data['post']
+        
+        # Check if user already rated this post
+        existing_rating = Rating.objects.filter(user=user, post=post).first()
+        if existing_rating:
+            # Update existing rating
+            existing_rating.rating = validated_data['rating']
+            existing_rating.save()
+            
+            # Update post average rating
+            post.update_rating(validated_data['rating'])
+            
+            return existing_rating
+        else:
+            # Create new rating
+            validated_data['user'] = user
+            rating = Rating.objects.create(**validated_data)
+            
+            # Update post average rating
+            post.update_rating(validated_data['rating'])
+            
+            return rating
+
+class LikeDislikeSerializer(serializers.Serializer):
+    """Serializer for like/dislike actions"""
+    action = serializers.ChoiceField(choices=['like', 'dislike', 'remove'])
+    
+    def validate(self, data):
+        return data
+
+class JobInteractionSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    user_avatar = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = JobInteraction
+        fields = [
+            'id', 'user', 'user_name', 'user_avatar', 
+            'job_listing', 'interaction_type', 'comment_text',
+            'parent_interaction', 'created_at'
+        ]
+        read_only_fields = ['user', 'created_at']
+    
+    def get_user_avatar(self, obj):
+        # You can customize this to return user avatar URL
+        return f"/static/images/avatars/{obj.user.username[:1].upper()}.png"
+
+class JobListingInteractionSerializer(serializers.ModelSerializer):
+    """Extended serializer for JobListing with interaction counts"""
+    likes_count = serializers.SerializerMethodField()
+    dislikes_count = serializers.SerializerMethodField()
+    comments_count = serializers.SerializerMethodField()
+    user_has_liked = serializers.SerializerMethodField()
+    user_has_disliked = serializers.SerializerMethodField()
+    company_logo_url = serializers.SerializerMethodField()
+    
+    def get_likes_count(self, obj):
+        return JobInteraction.objects.filter(
+            job_listing=obj, 
+            interaction_type='like'
+        ).count()
+    
+    def get_dislikes_count(self, obj):
+        return JobInteraction.objects.filter(
+            job_listing=obj, 
+            interaction_type='dislike'
+        ).count()
+    
+    def get_comments_count(self, obj):
+        return JobInteraction.objects.filter(
+            job_listing=obj, 
+            interaction_type='comment',
+            parent_interaction__isnull=True  # Only count parent comments
+        ).count()
+    
+    def get_user_has_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return JobInteraction.objects.filter(
+                job_listing=obj,
+                user=request.user,
+                interaction_type='like'
+            ).exists()
+        return False
+    
+    def get_user_has_disliked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return JobInteraction.objects.filter(
+                job_listing=obj,
+                user=request.user,
+                interaction_type='dislike'
+            ).exists()
+        return False
+    
+    def get_company_logo_url(self, obj):
+        if obj.company_logo:
+            return obj.company_logo.url
+        return '/static/hiring/images/default-company-logo.png'
+    
+    class Meta:
+        model = JobListing
+        fields = [
+            'id', 'listing_reference', 'title', 'status', 'apply_by',
+            'position_summary', 'industry', 'job_category', 'location',
+            'contract_type', 'ee_position', 'company_name', 'company_logo_url',
+            'company_description', 'likes_count', 'dislikes_count', 
+            'comments_count', 'user_has_liked', 'user_has_disliked',
+            'created_at', 'updated_at'
+        ]

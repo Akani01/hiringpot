@@ -4,6 +4,7 @@ from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 import uuid
 import os
+from .validators import validate_file_size, validate_video_file_extension, validate_image_file_extension
 # Additions
 from django.db import models
 from django.core.validators import FileExtensionValidator
@@ -768,8 +769,7 @@ class BusinessProfileView(models.Model):
     class Meta:
         db_table = 'business_profile_views'
 
-
-# Add these models to your existing models.py
+# models.py - Django models
 
 class Post(models.Model):
     POST_TYPES = [
@@ -777,6 +777,16 @@ class Post(models.Model):
         ('update', 'Company Update'),
         ('news', 'Industry News'),
         ('general', 'General Post'),
+        ('question', 'Question'),
+        ('achievement', 'Achievement'),
+        ('advice', 'Career Advice'),
+    ]
+    
+    VISIBILITY_CHOICES = [
+        ('public', 'Public - Everyone'),
+        ('connections', 'Connections Only'),
+        ('company', 'Company Only'),
+        ('private', 'Private - Just Me'),
     ]
     
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
@@ -784,54 +794,140 @@ class Post(models.Model):
     post_type = models.CharField(max_length=20, choices=POST_TYPES, default='general')
     title = models.CharField(max_length=200)
     content = models.TextField()
-    image = models.ImageField(upload_to='posts/images/', null=True, blank=True)
-    video = models.FileField(upload_to='posts/videos/', null=True, blank=True)
+    image = models.ImageField(
+        upload_to='posts/images/%Y/%m/%d/', 
+        null=True, 
+        blank=True,
+        validators=[validate_file_size, validate_image_file_extension]
+    )
+    video = models.FileField(
+        upload_to='posts/videos/%Y/%m/%d/', 
+        null=True, 
+        blank=True,
+        validators=[validate_file_size, validate_video_file_extension]
+    )
     video_url = models.URLField(blank=True)  # For YouTube/Vimeo links
+    tags = models.CharField(max_length=500, blank=True, help_text="Comma-separated tags")
     
     # Engagement metrics
     views = models.PositiveIntegerField(default=0)
     likes = models.ManyToManyField(CustomUser, related_name='post_likes', blank=True)
     dislikes = models.ManyToManyField(CustomUser, related_name='post_dislikes', blank=True)
+    shares = models.PositiveIntegerField(default=0)
+    comment_count = models.PositiveIntegerField(default=0)  # Comment count field
     
     # Ratings
     average_rating = models.FloatField(default=0)
     rating_count = models.PositiveIntegerField(default=0)
     
+    # Post visibility
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='public')
+    
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    edited_at = models.DateTimeField(null=True, blank=True)
+    
+    # Status flags
     is_published = models.BooleanField(default=True)
+    is_edited = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['-created_at']),
+            models.Index(fields=['post_type']),
+            models.Index(fields=['author']),
+            models.Index(fields=['is_published']),
+        ]
     
     def __str__(self):
         return f"{self.title} by {self.author.username}"
     
     def total_engagement(self):
-        return self.likes.count() + self.comments.count()
+        """Calculate total engagement score"""
+        return self.likes.count() + self.comment_count + self.shares
     
-    def update_rating(self, new_rating):
-        """Update average rating when new rating is added"""
-        total_ratings = self.rating_count
-        current_total = self.average_rating * total_ratings
-        new_total = current_total + new_rating
-        self.rating_count += 1
-        self.average_rating = new_total / self.rating_count
-        self.save()
+    def update_comment_count(self):
+        """Update comment count from related comments"""
+        count = self.comments.count()
+        if self.comment_count != count:
+            self.comment_count = count
+            self.save(update_fields=['comment_count'])
+        return count
+
+    def get_tags_list(self):
+        """Convert comma-separated tags string to list"""
+        if not self.tags:
+            return []
+        # Split by comma and clean up whitespace
+        tag_list = [tag.strip() for tag in self.tags.split(',') if tag.strip()]
+        return tag_list
+    
+    # You might also want to add a setter method
+    def set_tags_list(self, tag_list):
+        """Convert list to comma-separated string"""
+        if tag_list:
+            self.tags = ', '.join([str(tag).strip() for tag in tag_list])
+        else:
+            self.tags = ''
+
+    def get_tags_list(self, obj):
+        # Safe version that handles missing method
+        try:
+            return obj.get_tags_list()
+        except AttributeError:
+            # Fallback if method doesn't exist
+            if obj.tags:
+                return [tag.strip() for tag in obj.tags.split(',') if tag.strip()]
+            return []
+        
 
 class Comment(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    # Foreign keys to content types
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments', null=True, blank=True)
+    job_listing = models.ForeignKey(JobListing, on_delete=models.CASCADE, related_name='comments', null=True, blank=True)
+    
+    # Comment content and author
     author = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     content = models.TextField()
-    likes = models.ManyToManyField(CustomUser, related_name='comment_likes', blank=True)
     parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
     
+    # Engagement
+    likes = models.ManyToManyField(CustomUser, related_name='comment_likes', blank=True)
+    
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # Status flags
     is_edited = models.BooleanField(default=False)
     
     class Meta:
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"Comment by {self.author.username} on {self.post.title}"
+        if self.post:
+            return f"Comment by {self.author.username} on post: {self.post.title}"
+        elif self.job_listing:
+            return f"Comment by {self.author.username} on job: {self.job_listing.title}"
+        return f"Comment by {self.author.username}"
+    
+    def clean(self):
+        """
+        Ensure comment is attached to either a post OR a job listing, not both.
+        Raises ValidationError if constraints are violated.
+        """
+        if not self.post and not self.job_listing:
+            raise ValidationError("Comment must be attached to either a post or a job listing")
+        if self.post and self.job_listing:
+            raise ValidationError("Comment cannot be attached to both a post and a job listing")
+    
+    def save(self, *args, **kwargs):
+        """Override save to run validation before saving"""
+        self.clean()
+        super().save(*args, **kwargs)
+
 
 class Rating(models.Model):
     RATING_CHOICES = [
@@ -850,6 +946,7 @@ class Rating(models.Model):
     class Meta:
         unique_together = ['user', 'post']
 
+
 class PostView(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='post_views')
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
@@ -860,3 +957,31 @@ class PostView(models.Model):
         unique_together = ['post', 'ip_address']
 
 
+class JobInteraction(models.Model):
+    """Separate model for job likes, dislikes, and comments"""
+    INTERACTION_TYPES = (
+        ('like', 'Like'),
+        ('dislike', 'Dislike'),
+        ('comment', 'Comment'),
+    )
+    
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    job_listing = models.ForeignKey('JobListing', on_delete=models.CASCADE)
+    
+    # Interaction type
+    interaction_type = models.CharField(max_length=10, choices=INTERACTION_TYPES)
+    comment_text = models.TextField(blank=True, null=True)
+    
+    # For replies to comments
+    parent_interaction = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['user', 'job_listing', 'interaction_type']
+    
+    def __str__(self):
+        return f"{self.user.username} {self.interaction_type} on {self.job_listing.title}"
