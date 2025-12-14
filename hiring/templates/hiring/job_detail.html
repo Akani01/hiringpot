@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        /* Your existing CSS remains the same */
         .header-area {
             background-color: #fff;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -46,6 +45,19 @@
             border-radius: 8px;
             background: white;
             padding: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .default-logo {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #667eea;
+            border: 1px solid #dee2e6;
         }
         .back-button {
             color: white;
@@ -129,13 +141,10 @@
             background: #eee;
             margin: 8px 0;
         }
-
-        /* Fixed Three Dot Menu */
         .three-dot-menu {
             position: relative;
             cursor: pointer;
         }
-
         .three-dot-menu i {
             font-size: 22px;
             color: #555;
@@ -143,12 +152,10 @@
             border-radius: 50%;
             transition: all 0.3s ease;
         }
-
         .three-dot-menu i:hover {
             background-color: #f0f0f0;
             color: #ff589e;
         }
-
         .three-dot-menu .menu-content {
             position: absolute;
             right: 0;
@@ -164,13 +171,11 @@
             transition: all 0.3s ease;
             z-index: 1000;
         }
-
         .three-dot-menu:hover .menu-content {
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
         }
-
         .three-dot-menu .menu-content a {
             display: flex;
             align-items: center;
@@ -182,12 +187,10 @@
             background: none;
             width: 100%;
         }
-
         .three-dot-menu .menu-content a:hover {
             background: rgba(255, 88, 158, 0.1);
             color: #ff589e;
         }
-
         .three-dot-menu .menu-content a i {
             margin-right: 10px;
             font-size: 16px;
@@ -196,7 +199,6 @@
             padding: 0;
             background: none;
         }
-
         .mobile-bottom-nav {
             display: none;
         }
@@ -260,6 +262,26 @@
             z-index: 9999;
             min-width: 300px;
             max-width: 500px;
+        }
+        .job-status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .status-published {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
+        .status-draft {
+            background: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
+        }
+        .status-closed {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
         }
     </style>
 </head>
@@ -360,6 +382,7 @@
                 <div class="col-md-8">
                     <h1 id="job-title" class="display-5 mb-3">
                         <div class="loading-spinner"></div> Loading Job Title...
+                        <span id="job-status-badge" class="job-status-badge" style="display: none;"></span>
                     </h1>
                     <h4 id="company-name" class="mb-2">
                         <div class="loading-spinner"></div> Loading Company...
@@ -378,11 +401,17 @@
                     </p>
                 </div>
                 <div class="col-md-4 text-md-end">
-                    <img id="company-logo" src="" alt="Company Logo" class="company-logo mb-3" style="display: none;">
+                    <div id="logo-container">
+                        <img id="company-logo" src="" alt="Company Logo" class="company-logo mb-3" style="display: none;">
+                        <div id="default-logo" class="default-logo mb-3" style="display: none;">
+                            <i class="fas fa-building"></i>
+                        </div>
+                    </div>
                     <div id="apply-section">
                         <button id="apply-btn" class="btn btn-light btn-lg" onclick="applyForJob()" disabled>
                             <i class="fas fa-paper-plane"></i> Apply Now
                         </button>
+                        <div id="status-message" style="display: none;"></div>
                         <p id="applied-message" class="text-light mt-2" style="display: none;">
                             <i class="fas fa-check-circle"></i> You have applied for this position
                         </p>
@@ -546,11 +575,9 @@
             const path = window.location.pathname;
             console.log('Full URL path:', path);
             
-            // Remove trailing slash and split by /
             const pathSegments = path.replace(/\/$/, '').split('/');
             console.log('Path segments:', pathSegments);
             
-            // The job ID should be the last segment
             const jobId = pathSegments[pathSegments.length - 1];
             console.log('Extracted job ID:', jobId);
             
@@ -598,7 +625,7 @@
                     console.log('Job data received:', data);
                     if (data.success) {
                         displayJobDetails(data.job);
-                        updateApplyButton(data.has_applied);
+                        updateApplyButton(data.has_applied, data.job.status);
                     } else {
                         console.error('API returned error:', data.error);
                         showError(data.error || 'Job not found or no longer available.');
@@ -625,17 +652,63 @@
                 document.getElementById('apply-by').querySelector('span').textContent = 'Not specified';
             }
             
-            // Company logo
-            if (job.company_logo) {
-                document.getElementById('company-logo').src = job.company_logo;
-                document.getElementById('company-logo').style.display = 'block';
+            // Company logo - handle null/empty logo
+            const logoImg = document.getElementById('company-logo');
+            const defaultLogo = document.getElementById('default-logo');
+            
+            if (job.company_logo && job.company_logo.trim() !== '') {
+                // If it's a relative path, ensure it starts with /
+                let logoUrl = job.company_logo;
+                if (logoUrl && !logoUrl.startsWith('http') && !logoUrl.startsWith('/')) {
+                    logoUrl = '/' + logoUrl;
+                }
+                logoImg.src = logoUrl;
+                logoImg.onerror = function() {
+                    // If image fails to load, show default logo
+                    logoImg.style.display = 'none';
+                    defaultLogo.style.display = 'flex';
+                };
+                logoImg.style.display = 'block';
+                defaultLogo.style.display = 'none';
+            } else {
+                // No logo provided, show default
+                logoImg.style.display = 'none';
+                defaultLogo.style.display = 'flex';
+            }
+
+            // Show job status badge
+            if (job.status) {
+                const badge = document.getElementById('job-status-badge');
+                let statusText = '';
+                let statusClass = '';
+                
+                switch(job.status) {
+                    case 'published':
+                        statusText = 'Open';
+                        statusClass = 'status-published';
+                        break;
+                    case 'draft':
+                        statusText = 'Draft';
+                        statusClass = 'status-draft';
+                        break;
+                    case 'closed':
+                        statusText = 'Closed';
+                        statusClass = 'status-closed';
+                        break;
+                    default:
+                        statusText = job.status.charAt(0).toUpperCase() + job.status.slice(1);
+                        statusClass = 'status-draft';
+                }
+                
+                badge.textContent = statusText;
+                badge.className = 'job-status-badge ' + statusClass;
+                badge.style.display = 'inline-block';
             }
 
             // Job content with fallbacks
             document.getElementById('position-summary').innerHTML = job.position_summary ? 
                 `<p>${escapeHtml(job.position_summary)}</p>` : '<p class="text-muted">No position summary available.</p>';
             
-            // FIXED: Use job_description instead of description
             document.getElementById('job-description').innerHTML = job.job_description ? 
                 `<p>${escapeHtml(job.job_description)}</p>` : '<p class="text-muted">No detailed description available.</p>';
 
@@ -655,7 +728,7 @@
             document.getElementById('competencies-requirements').innerHTML = job.competencies_requirements ? 
                 `<p>${escapeHtml(job.competencies_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
 
-            // Sidebar details with fallbacks - FIXED: Use actual fields from your model
+            // Sidebar details with fallbacks
             document.getElementById('job-industry').textContent = job.industry || 'Not specified';
             document.getElementById('job-category').textContent = job.job_category || 'Not specified';
             document.getElementById('job-contract').textContent = job.contract_type || 'Not specified';
@@ -674,10 +747,43 @@
                 `<p>${escapeHtml(job.company_description)}</p>` : '<p class="text-muted">No company description available.</p>';
         }
 
-        function updateApplyButton(hasApplied) {
+        function updateApplyButton(hasApplied, jobStatus) {
             const applyBtn = document.getElementById('apply-btn');
             const appliedMessage = document.getElementById('applied-message');
             const loginRequired = document.getElementById('login-required');
+            const statusMessage = document.getElementById('status-message');
+            
+            // Clear previous messages
+            applyBtn.style.display = 'block';
+            appliedMessage.style.display = 'none';
+            loginRequired.style.display = 'none';
+            statusMessage.style.display = 'none';
+            statusMessage.innerHTML = '';
+            
+            // Check if job is published and accepting applications
+            if (jobStatus && jobStatus !== 'published') {
+                applyBtn.style.display = 'none';
+                let message = '';
+                let messageClass = '';
+                
+                switch(jobStatus) {
+                    case 'draft':
+                        message = '<i class="fas fa-edit"></i> This job is in draft mode and not accepting applications.';
+                        messageClass = 'alert-warning';
+                        break;
+                    case 'closed':
+                        message = '<i class="fas fa-ban"></i> This job is closed and no longer accepting applications.';
+                        messageClass = 'alert-danger';
+                        break;
+                    default:
+                        message = '<i class="fas fa-info-circle"></i> This job is not currently accepting applications.';
+                        messageClass = 'alert-info';
+                }
+                
+                statusMessage.innerHTML = `<div class="alert ${messageClass}">${message}</div>`;
+                statusMessage.style.display = 'block';
+                return;
+            }
             
             if (!userIsAuthenticated) {
                 applyBtn.style.display = 'none';

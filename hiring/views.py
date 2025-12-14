@@ -3951,20 +3951,24 @@ def api_add_document(request):
 @parser_classes([JSONParser, MultiPartParser])
 def api_admin_jobs(request):
     """Admin job management - list all jobs and create new ones"""
-    if not has_admin_access(request.user):  # FIXED: Use has_admin_access
+    # Allow both admin and business users
+    if not (has_admin_access(request.user) or has_business_access(request.user)):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     if request.method == 'GET':
-        # Business-specific filtering
+        # BUSINESS USER: Can only see their own company's jobs
         if has_business_access(request.user) and not request.user.is_superuser:
             try:
                 business_profile = BusinessProfile.objects.get(user=request.user)
                 company_name = business_profile.company_name
                 jobs = JobListing.objects.filter(company_name=company_name).order_by('-created_at')
             except BusinessProfile.DoesNotExist:
-                jobs = JobListing.objects.none()
+                return Response({
+                    'success': False,
+                    'error': 'Business profile not found'
+                }, status=status.HTTP_400_BAD_REQUEST)
         else:
-            # Superuser - show all jobs
+            # Superuser/Admin - show all jobs
             jobs = JobListing.objects.all().order_by('-created_at')
         
         # Apply status filter
@@ -4003,40 +4007,36 @@ def api_admin_jobs(request):
         })
     
     elif request.method == 'POST':
-        # Create new job listing with business context
-        data = request.data.copy()
-        
-        # Set company name for business users
+        """Create new job listing with proper company isolation"""
+        # BUSINESS USER: Must have business profile
         if has_business_access(request.user) and not request.user.is_superuser:
             try:
-                business_profile = BusinessProfile.objects.get(user=request.user)
-                data['company_name'] = business_profile.company_name
-                
-                # Auto-populate company logo from business profile if not provided
-                if not data.get('company_logo') and business_profile.company_logo:
-                    data['company_logo'] = business_profile.company_logo
+                BusinessProfile.objects.get(user=request.user)
             except BusinessProfile.DoesNotExist:
                 return Response({
                     'success': False,
                     'error': 'Business profile not found. Please complete your business profile first.'
                 }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Generate listing reference if not provided
-        if not data.get('listing_reference'):
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            data['listing_reference'] = f"JOB-{timestamp}"
+        data = request.data.copy()
         
         # Handle file upload for company logo
         if 'company_logo' in request.FILES:
             data['company_logo'] = request.FILES['company_logo']
+        elif data.get('company_logo') in ['', 'null', 'undefined']:
+            # Handle explicit logo removal
+            data['company_logo'] = None
         
-        serializer = AdminJobCreateSerializer(data=data)
+        # Remove company_name for business users (serializer will handle it)
+        if has_business_access(request.user) and not request.user.is_superuser:
+            data.pop('company_name', None)
+        
+        serializer = AdminJobCreateSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             job = serializer.save()
             
             # Log the creation
-            logger.info(f"Admin {request.user.username} created job: {job.title}")
+            logger.info(f"User {request.user.username} created job: {job.title} for company: {job.company_name}")
             
             return Response({
                 'success': True,
@@ -4050,27 +4050,32 @@ def api_admin_jobs(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 @parser_classes([JSONParser, MultiPartParser])
 def api_admin_job_detail(request, job_id):
     """Admin job detail management - get, update, or delete specific job"""
-    if not has_admin_access(request.user):  # FIXED: Use has_admin_access
+    # Allow both admin and business users
+    if not (has_admin_access(request.user) or has_business_access(request.user)):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
         job = JobListing.objects.get(id=job_id)
         
-        # Business users can only access their own jobs
+        # BUSINESS USER: Can only access their own company's jobs
         if has_business_access(request.user) and not request.user.is_superuser:
             try:
                 business_profile = BusinessProfile.objects.get(user=request.user)
                 if job.company_name != business_profile.company_name:
-                    return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+                    return Response({
+                        'success': False,
+                        'error': 'Unauthorized - You can only access jobs from your own company'
+                    }, status=status.HTTP_403_FORBIDDEN)
             except BusinessProfile.DoesNotExist:
-                return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+                return Response({
+                    'success': False,
+                    'error': 'Business profile not found'
+                }, status=status.HTTP_400_BAD_REQUEST)
                 
     except JobListing.DoesNotExist:
         return Response({
@@ -4091,20 +4096,25 @@ def api_admin_job_detail(request, job_id):
         })
     
     elif request.method == 'PUT':
+        """Update job with proper company isolation"""
         data = request.data.copy()
         
         # Handle file upload for company logo
         if 'company_logo' in request.FILES:
             data['company_logo'] = request.FILES['company_logo']
-        elif 'company_logo' in data and data['company_logo'] == '':
-            # Handle logo removal
+        elif data.get('company_logo') in ['', 'null', 'undefined']:
+            # Handle explicit logo removal
             data['company_logo'] = None
         
-        serializer = AdminJobCreateSerializer(job, data=data, partial=True)
+        # BUSINESS USER: Prevent changing company name
+        if has_business_access(request.user) and not request.user.is_superuser:
+            data.pop('company_name', None)
+        
+        serializer = AdminJobCreateSerializer(job, data=data, partial=True, context={'request': request})
         if serializer.is_valid():
             updated_job = serializer.save()
             
-            logger.info(f"Admin {request.user.username} updated job: {job.title}")
+            logger.info(f"User {request.user.username} updated job: {job.title} for company: {job.company_name}")
             
             return Response({
                 'success': True,
@@ -4118,15 +4128,32 @@ def api_admin_job_detail(request, job_id):
         }, status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'DELETE':
+        # BUSINESS USER: Can only delete their own company's jobs
+        if has_business_access(request.user) and not request.user.is_superuser:
+            try:
+                business_profile = BusinessProfile.objects.get(user=request.user)
+                if job.company_name != business_profile.company_name:
+                    return Response({
+                        'success': False,
+                        'error': 'Unauthorized - You can only delete jobs from your own company'
+                    }, status=status.HTTP_403_FORBIDDEN)
+            except BusinessProfile.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'error': 'Business profile not found'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
         job_title = job.title
+        company_name = job.company_name
         job.delete()
         
-        logger.info(f"Admin {request.user.username} deleted job: {job_title}")
+        logger.info(f"User {request.user.username} deleted job: {job_title} from company: {company_name}")
         
         return Response({
             'success': True,
             'message': 'Job deleted successfully'
         })
+    
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -4292,12 +4319,13 @@ def admin_analytics_page(request):
     return render(request, 'hiring/admin_analytics.html')
 
 #api edit job
+#api edit job
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 @parser_classes([JSONParser, MultiPartParser])
 def api_edit_job(request, job_id):
     """Edit existing job record with proper data handling for ALL fields"""
-    if not has_admin_access(request.user):  # FIXED: Use has_admin_access
+    if not has_admin_access(request.user):
         return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
     
     try:
@@ -4320,29 +4348,65 @@ def api_edit_job(request, job_id):
     
     data = request.data.copy()
     
+    # Debug logging
+    print(f"=== DEBUG: Editing job {job_id} ===")
+    print(f"User: {request.user.username}")
+    print(f"Is superuser: {request.user.is_superuser}")
+    print(f"Has business access: {has_business_access(request.user)}")
+    print(f"Request data keys: {data.keys()}")
+    print(f"Request FILES: {request.FILES}")
+    print(f"Current job company_name: {job.company_name}")
+    print(f"Current job company_logo: {job.company_logo}")
+    
+    # Handle file upload for company logo - FIXED
+    if 'company_logo' in request.FILES:
+        print(f"DEBUG: New logo file uploaded: {request.FILES['company_logo'].name}")
+        data['company_logo'] = request.FILES['company_logo']
+    elif 'company_logo' in data:
+        # Handle logo removal or keep existing
+        if data['company_logo'] == '' or data['company_logo'] == 'null':
+            print("DEBUG: Logo removal requested")
+            
+            # If business user, revert to business profile logo when removing
+            if has_business_access(request.user) and not request.user.is_superuser:
+                try:
+                    business_profile = BusinessProfile.objects.get(user=request.user)
+                    if business_profile.company_logo:
+                        print(f"DEBUG: Using business profile logo: {business_profile.company_logo}")
+                        data['company_logo'] = business_profile.company_logo
+                    else:
+                        data['company_logo'] = None
+                except BusinessProfile.DoesNotExist:
+                    data['company_logo'] = None
+            else:
+                data['company_logo'] = None
+        elif data['company_logo'] is None:
+            # Keep existing logo
+            data.pop('company_logo', None)
+    
+    # Remove company_name for business users (cannot change it)
+    if has_business_access(request.user) and not request.user.is_superuser:
+        data.pop('company_name', None)
+        print("DEBUG: Removed company_name for business user")
+    
     # Handle empty fields - set to empty string instead of None for text fields
     text_fields = [
         'industry', 'job_category', 'contract_type', 'company_description',
         'knowledge_requirements', 'skills_requirements', 'competencies_requirements',
         'experience_requirements', 'education_requirements', 'position_summary',
-        'job_description'  # Add this if it exists in your model
+        'job_description'
     ]
     
     for field in text_fields:
         if field in data and data[field] == '':
             data[field] = ''
     
-    # Handle file upload for company logo
-    if 'company_logo' in request.FILES:
-        data['company_logo'] = request.FILES['company_logo']
-    elif 'company_logo' in data and data['company_logo'] == '':
-        # Handle logo removal if empty string is sent
-        data['company_logo'] = None
-    
     # Handle boolean field
     if 'ee_position' in data:
         if isinstance(data['ee_position'], str):
-            data['ee_position'] = data['ee_position'].lower() == 'true'
+            data['ee_position'] = data['ee_position'].lower() in ['true', '1', 'yes']
+        elif isinstance(data['ee_position'], bool):
+            data['ee_position'] = data['ee_position']
     
     # Handle date field
     if 'apply_by' in data and not data['apply_by']:
@@ -4352,12 +4416,16 @@ def api_edit_job(request, job_id):
             'error': 'Apply by date is required'
         }, status=status.HTTP_400_BAD_REQUEST)
     
-    print("Received data for job update:", data)  # Debug
+    print(f"DEBUG: Final data for update: {data}")
     
     # Use the updated serializer that includes all fields
-    serializer = AdminJobCreateSerializer(job, data=data, partial=True)
+    serializer = AdminJobCreateSerializer(job, data=data, partial=True, context={'request': request})
+    
     if serializer.is_valid():
         updated_job = serializer.save()
+        
+        print(f"DEBUG: Job updated successfully")
+        print(f"DEBUG: New company_logo: {updated_job.company_logo}")
         
         logger.info(f"Admin {request.user.username} updated job: {job.title}")
         
@@ -4367,7 +4435,7 @@ def api_edit_job(request, job_id):
             'message': 'Job updated successfully'
         })
     
-    print("Serializer errors:", serializer.errors)  # Debug
+    print(f"DEBUG: Serializer errors: {serializer.errors}")
     return Response({
         'success': False,
         'errors': serializer.errors

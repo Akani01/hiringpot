@@ -431,7 +431,7 @@ class JobListing(models.Model):
     location = models.CharField(max_length=100)
     contract_type = models.CharField(max_length=50)
     ee_position = models.BooleanField(default=True)
-    company_name = models.CharField(max_length=200, default='Benta Group')
+    company_name = models.CharField(max_length=200, default='Admin')
     company_logo = models.ImageField(
         upload_to='company_logos/%Y/%m/%d/', 
         blank=True, 

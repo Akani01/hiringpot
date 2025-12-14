@@ -1,19 +1,5 @@
-from django.core.files.storage import FileSystemStorage
-from django.conf import settings
 from storages.backends.s3boto3 import S3Boto3Storage
 
-import os
-
-class MediaStorage(FileSystemStorage):
-    def __init__(self):
-        super().__init__(
-            location=os.path.join(settings.BASE_DIR, 'mediafiles'),
-            base_url='/mediafiles/'
-        )
-
-class StaticStorage(FileSystemStorage):
-    def __init__(self):
-        super().__init__(
-            location=os.path.join(settings.BASE_DIR, 'staticfiles'),
-            base_url='/static/'
-        )
+class MediaStorage(S3Boto3Storage):
+    location = 'mediafiles'
+    file_overwrite = False  # don’t overwrite files with the same name

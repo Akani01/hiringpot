@@ -11,6 +11,26 @@ SKILL_PROFICIENCY_LEVELS = [
     ('expert', 'Expert')
 ]
 
+
+def has_business_access(user):
+    """
+    Check if user has business access.
+    Returns True if user is in Business group or has business profile.
+    """
+    # Option 1: Check by group name
+    if user.groups.filter(name='Business').exists():
+        return True
+    
+    # Option 2: Check if user has a business profile
+    from .models import BusinessProfile
+    if BusinessProfile.objects.filter(user=user).exists():
+        return True
+    
+    # Option 3: Check custom user field if you have one
+    if hasattr(user, 'is_business_user') and user.is_business_user:
+        return True
+        
+    return False
 # ==================== USER SERIALIZERS ====================
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -561,9 +581,9 @@ class BusinessSignupSerializer(serializers.Serializer):
 
 
 # ==================== ADMIN SERIALIZERS ====================
-
 class AdminJobCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating jobs in admin with all model fields"""
+    
     class Meta:
         model = JobListing
         fields = [
@@ -594,6 +614,41 @@ class AdminJobCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        request = self.context.get('request')
+        user = request.user if request else None
+        
+        # Define has_business_access locally if not imported
+        def has_business_access(user):
+            if user and user.groups.filter(name='Business').exists():
+                return True
+            # Check for business profile
+            try:
+                from .models import BusinessProfile
+                if BusinessProfile.objects.filter(user=user).exists():
+                    return True
+            except:
+                pass
+            return False
+        
+        # BUSINESS USER: Force company name and logo from business profile
+        if user and has_business_access(user) and not user.is_superuser:
+            try:
+                from .models import BusinessProfile
+                business_profile = BusinessProfile.objects.get(user=user)
+                # Force company name from business profile
+                validated_data['company_name'] = business_profile.company_name
+                
+                # Auto-populate company logo from business profile if not provided
+                if 'company_logo' not in validated_data or not validated_data.get('company_logo'):
+                    if business_profile.company_logo:
+                        validated_data['company_logo'] = business_profile.company_logo
+                    else:
+                        validated_data['company_logo'] = None
+            except BusinessProfile.DoesNotExist:
+                raise serializers.ValidationError({
+                    'company_name': 'Business profile not found. Please complete your business profile first.'
+                })
+        
         # Generate listing reference if not provided
         if not validated_data.get('listing_reference'):
             from datetime import datetime
@@ -613,6 +668,41 @@ class AdminJobCreateSerializer(serializers.ModelSerializer):
         
         return super().create(validated_data)
 
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        user = request.user if request else None
+        
+        # Define has_business_access locally if not imported
+        def has_business_access(user):
+            if user and user.groups.filter(name='Business').exists():
+                return True
+            # Check for business profile
+            try:
+                from .models import BusinessProfile
+                if BusinessProfile.objects.filter(user=user).exists():
+                    return True
+            except:
+                pass
+            return False
+        
+        # BUSINESS USER: Prevent changing company name and handle logo properly
+        if user and has_business_access(user) and not user.is_superuser:
+            # Remove company_name from validated_data to prevent changes
+            validated_data.pop('company_name', None)
+            
+            # Handle company logo: if being removed, use business profile logo
+            if 'company_logo' in validated_data and validated_data['company_logo'] is None:
+                try:
+                    from .models import BusinessProfile
+                    business_profile = BusinessProfile.objects.get(user=user)
+                    if business_profile.company_logo:
+                        validated_data['company_logo'] = business_profile.company_logo
+                except BusinessProfile.DoesNotExist:
+                    validated_data['company_logo'] = None
+        
+        return super().update(instance, validated_data)
+
+        
 class AdminApplicationStatusSerializer(serializers.Serializer):
     """Serializer for updating application status"""
     status = serializers.ChoiceField(choices=Application.APPLICATION_STATUS)

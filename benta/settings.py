@@ -131,13 +131,17 @@ else:
 # AWS S3 STORAGE (FINAL WORKING)
 # ==============================
 
+
+#aws database
+
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_REGION_NAME = "af-south-1"
-
-AWS_S3_ENDPOINT_URL = "https://s3.af-south-1.amazonaws.com"
 AWS_S3_FILE_OVERWRITE = False
+
+# Force the correct endpoint
+AWS_S3_ENDPOINT_URL = "https://s3.af-south-1.amazonaws.com"
 
 STORAGES = {
     "default": {
@@ -156,6 +160,7 @@ STORAGES = {
 }
 
 MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/media/"
+
 
 STATIC_URL = 'static/'
 #django databse settings
