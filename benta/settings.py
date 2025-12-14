@@ -19,6 +19,8 @@ ALLOWED_HOSTS = [
         'production-europe-west4-drams3a.railway-registry.com',
         'railway.app',
         'hiringpot-production.up.railway.app',
+        'tolleya.com',
+        'www.tolleya.com',
         '127.0.0.1',
 ]  # Railway gives dynamic domains
 
@@ -102,6 +104,8 @@ WSGI_APPLICATION = 'benta.wsgi.application'
 # -------------------------------------------------------------------
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+is_local = os.environ.get('DJANGO_LOCAL', 'false').lower() == 'true'
+
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
@@ -123,46 +127,51 @@ else:
 # -------------------------------------------------------------------
 #aws database
 
-# -----------------------------
-# STATIC FILES (Whitelist + Local)
-# -----------------------------
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# ==============================
+# AWS S3 STORAGE (FINAL WORKING)
+# ==============================
 
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
-
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-
-# -----------------------------
-# AWS S3 MEDIA STORAGE
-# -----------------------------
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
 AWS_S3_REGION_NAME = "af-south-1"
-AWS_S3_ENDPOINT_URL = f"https://s3.{AWS_S3_REGION_NAME}.amazonaws.com"
 
+AWS_S3_ENDPOINT_URL = "https://s3.af-south-1.amazonaws.com"
 AWS_S3_FILE_OVERWRITE = False
-AWS_DEFAULT_ACL = None
-AWS_QUERYSTRING_AUTH = False
 
-
-# ---------------------------
-# STORAGE CONFIG
-# ---------------------------
 STORAGES = {
     "default": {
-        "BACKEND": "hiring.storage_backends.MediaStorage",
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "OPTIONS": {
+            "access_key": AWS_ACCESS_KEY_ID,
+            "secret_key": AWS_SECRET_ACCESS_KEY,
+            "bucket_name": AWS_STORAGE_BUCKET_NAME,
+            "endpoint_url": AWS_S3_ENDPOINT_URL,
+            "region_name": AWS_S3_REGION_NAME,
+        },
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
+MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/media/"
 
+STATIC_URL = 'static/'
+#django databse settings
+django_heroku.settings(locals())
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+#MEDIA_URL = '/mediafiles/'
+#MEDIA_ROOT = os.path.join(BASE_DIR, 'static/mediafiles')
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage" 
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static')
+]
+
+#end
 MAX_UPLOAD_SIZE = 314572800  # 300MB in bytes
 DATA_UPLOAD_MAX_MEMORY_SIZE = 314572800  # 300MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 314572800  # 300MB
@@ -172,11 +181,6 @@ FILE_UPLOAD_HANDLERS = [
     'django.core.files.uploadhandler.MemoryFileUploadHandler',
     'django.core.files.uploadhandler.TemporaryFileUploadHandler',
 ]
-
-# MEDIA is on AWS
-MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/mediafiles/"
-
-MEDIA_ROOT = None
 
 
 # -------------------------------------------------------------------

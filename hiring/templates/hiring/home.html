@@ -52,7 +52,7 @@
         .nav-icons {
             display: flex;
             list-style: none;
-            gap: 20px;
+            gap: 15px;
             align-items: center;
             margin: 0;
             padding: 0;
@@ -810,7 +810,7 @@
             100% { box-shadow: 0 0 0 0 rgba(0, 115, 177, 0); }
         }
         
-        /* ===== SHARE BUTTON ===== */
+        /* ===== SHARE BUTTON - FIXED FOR RESPONSIVENESS ===== */
         .share-button-container {
             position: relative;
             display: inline-block;
@@ -820,12 +820,15 @@
             background: #f8f9fa;
             border: none;
             border-radius: 20px;
-            padding: 6px 12px;
-            font-size: 0.75rem;
+            padding: 8px 16px;
+            font-size: 0.875rem;
             font-weight: 500;
             color: #555;
             transition: all 0.3s ease;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
         
         .share-button:hover {
@@ -835,11 +838,9 @@
         
         .share-dropdown {
             position: absolute;
-            bottom: 100%;
-            left: 0;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             padding: 10px;
             opacity: 0;
             visibility: hidden;
@@ -847,6 +848,10 @@
             transition: all 0.3s ease;
             z-index: 1000;
             min-width: 180px;
+            /* Position above on desktop, below on mobile */
+            bottom: 100%;
+            left: 0;
+            margin-bottom: 5px;
         }
         
         .share-dropdown.show {
@@ -859,15 +864,22 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 8px 12px;
+            padding: 10px 12px;
             color: #444;
             text-decoration: none;
             border-radius: 6px;
             transition: all 0.2s ease;
+            font-size: 14px;
         }
         
         .share-dropdown a:hover {
             background: #f5f7fa;
+            color: var(--primary-color);
+        }
+        
+        .share-dropdown a i {
+            width: 20px;
+            text-align: center;
         }
         
         /* ===== JOB CARD GRID ===== */
@@ -929,23 +941,31 @@
             }
         }
         
-        /* ===== THREE DOT MENU ===== */
+        /* ===== THREE DOT MENU - FIXED FOR MOBILE ===== */
         .three-dot-menu {
             position: relative;
-            cursor: pointer;
         }
         
-        .three-dot-menu i {
-            font-size: 22px;
+        .three-dot-menu .three-dot-btn {
+            background: none;
+            border: none;
             color: #555;
-            padding: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 50%;
             transition: all 0.3s ease;
         }
         
-        .three-dot-menu i:hover {
+        .three-dot-menu .three-dot-btn:hover {
             background-color: #f0f0f0;
             color: var(--secondary-color);
+        }
+        
+        .three-dot-menu i {
+            font-size: 22px;
         }
         
         .three-dot-menu .menu-content {
@@ -953,21 +973,51 @@
             right: 0;
             top: 45px;
             background: #fff;
-            width: 200px;
-            padding: 8px 0;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 250px; /* Increased width */
+            padding: 10px 0;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
             opacity: 0;
             visibility: hidden;
             transform: translateY(-10px);
             transition: all 0.3s ease;
             z-index: 1000;
+            border: 1px solid #eee;
         }
         
-        .three-dot-menu:hover .menu-content {
+        .three-dot-menu .menu-content.show {
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
+        }
+        
+        /* Three dot menu items - fixed for mobile */
+        .three-dot-menu .menu-content a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            color: #444;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            font-size: 15px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        
+        .three-dot-menu .menu-content a:last-child {
+            border-bottom: none;
+        }
+        
+        .three-dot-menu .menu-content a:hover {
+            background: #f8f9fa;
+            color: var(--secondary-color);
+            padding-left: 25px;
+        }
+        
+        .three-dot-menu .menu-content a i {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
         }
         
         /* ===== FEED TOGGLE BUTTON ===== */
@@ -1023,7 +1073,7 @@
             animation: spin 1s linear infinite;
         }
         
-        /* ===== MODAL SCROLL FIXES (FROM SECOND VERSION) ===== */
+        /* ===== MODAL SCROLL FIXES ===== */
         .modal-body {
             max-height: 60vh;
             overflow-y: auto;
@@ -1126,6 +1176,10 @@
                 text-decoration: none;
                 flex: 1;
                 padding: 10px 5px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
             }
             
             .mobile-bottom-nav i {
@@ -1140,6 +1194,15 @@
             
             body {
                 padding-bottom: 80px;
+            }
+            
+            /* Share dropdown positioning for mobile */
+            .share-dropdown {
+                bottom: auto;
+                top: 100%;
+                left: 0;
+                margin-top: 5px;
+                margin-bottom: 0;
             }
             
             /* Modal fixes for mobile */
@@ -1165,6 +1228,38 @@
             #businessSignupModal .col-md-6 {
                 width: 100%;
                 padding: 0;
+            }
+            
+            /* Three dot menu mobile fixes */
+            .three-dot-menu .menu-content {
+                width: 280px; /* Even wider on mobile */
+                right: -10px;
+            }
+            
+            .three-dot-menu .menu-content a {
+                padding: 16px 20px; /* Larger touch targets */
+                font-size: 16px;
+            }
+            
+            .three-dot-menu .menu-content a i {
+                font-size: 20px;
+                width: 28px;
+            }
+            
+            /* Profile menu mobile fixes */
+            .profile-menu {
+                width: 280px;
+                right: -10px;
+            }
+            
+            .profile-menu a {
+                padding: 16px 20px;
+                font-size: 16px;
+            }
+            
+            .profile-menu a i {
+                font-size: 20px;
+                width: 28px;
             }
         }
         
@@ -1198,6 +1293,11 @@
             
             .job-actions {
                 flex-direction: column;
+                width: 100%;
+            }
+            
+            .job-actions button {
+                width: 100%;
             }
             
             .share-dropdown {
@@ -1227,9 +1327,19 @@
                 font-size: 14px;
                 padding: 8px 12px;
             }
-        }
-        
-        @media (max-width: 576px) {
+            
+            /* Share button mobile fixes */
+            .share-button {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+            
+            /* Three dot menu icon size for mobile */
+            .three-dot-menu i {
+                font-size: 24px;
+                padding: 10px;
+            }
+            
             .nav-icons {
                 gap: 10px;
             }
@@ -1243,6 +1353,24 @@
                 width: 35px;
                 height: 35px;
                 font-size: 16px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .nav-icons {
+                gap: 8px;
+            }
+            
+            .user-badge {
+                font-size: 0.7em;
+                padding: 3px 8px;
+                display: none; /* Hide on very small screens */
+            }
+            
+            .profile-avatar-small {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
             }
             
             .post-modal-content {
@@ -1265,6 +1393,36 @@
                 padding: 10px 12px !important;
                 width: 100%;
             }
+            
+            /* Share dropdown mobile fixes */
+            .share-dropdown {
+                min-width: 160px;
+            }
+            
+            .share-dropdown a {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            
+            /* Three dot menu full width on very small screens */
+            .three-dot-menu .menu-content {
+                width: 95vw;
+                max-width: 300px;
+                right: -20px;
+            }
+            
+            .three-dot-menu .menu-content a {
+                padding: 18px 20px;
+            }
+            
+            /* Mobile bottom nav adjustments */
+            .mobile-bottom-nav a span {
+                font-size: 12px;
+            }
+            
+            .mobile-bottom-nav i {
+                font-size: 18px;
+            }
         }
         
         /* iOS Safari fixes */
@@ -1276,6 +1434,21 @@
             .mobile-bottom-nav {
                 padding-bottom: calc(env(safe-area-inset-bottom) + 5px);
             }
+            
+            /* Better touch targets for iOS */
+            .three-dot-menu .menu-content a,
+            .profile-menu a {
+                min-height: 44px; /* Apple's recommended minimum touch target */
+            }
+            
+            .share-dropdown a {
+                min-height: 44px;
+            }
+        }
+        
+        /* Prevent body scrolling when dropdowns are open */
+        body.dropdown-open {
+            overflow: hidden;
         }
     </style>
 </head>
@@ -1422,20 +1595,24 @@
                                    </a>
                                 </li>  
 
-                                <!-- Three Dot Menu - Different for Business Users -->
+                                <!-- Three Dot Menu - Fixed for mobile -->
                                 <li>
                                     <div class="three-dot-menu">
-                                        <i class="bi bi-three-dots-vertical"></i>
+                                        <button class="three-dot-btn" onclick="toggleThreeDotMenu(this)">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
                                         <div class="menu-content">
                                             {% if user.user_type == 'admin' or user.is_superuser %}
                                                 <a href="/admin-portal/jobs/"><i class="fas fa-briefcase"></i> Manage Jobs</a>
                                                 <a href="/admin-portal/applications/"><i class="fas fa-users"></i> View Applicants</a>
                                                 <a href="/admin-portal/"><i class="fas fa-chart-bar"></i> Analytics</a>
+                                                <a href="/admin-portal/settings/"><i class="fas fa-cog"></i> Settings</a>
                                             {% else %}
                                                 <a href="/profile/skills/"><i class="fas fa-cogs"></i> Skills</a>
                                                 <a href="/profile/employment/"><i class="fas fa-briefcase"></i> Employment</a>
                                                 <a href="/profile/education/"><i class="fas fa-graduation-cap"></i> Education</a>
                                                 <a href="/profile/documents/"><i class="fas fa-file-upload"></i> Documents</a>
+                                                <a href="/saved-jobs/"><i class="fas fa-bookmark"></i> Saved Jobs</a>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -1704,7 +1881,7 @@
     <!-- Toast Container -->
     <div class="toast-container"></div>
 
-    <!-- Auth Modals (USING THE WORKING LOGIN SYSTEM FROM SECOND VERSION) -->
+    <!-- Auth Modals -->
     <!-- Login Modal -->
     <div class="modal fade" id="loginModal" tabindex="-1">
         <div class="modal-dialog">
@@ -1874,15 +2051,14 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // ===== FIXED VERSION - COMBINING BOTH =====
-        // Post/Feed features from first version + Login system from second version
-        
+        // ===== FIXED VERSION =====
         // Global state
         let currentTab = 'jobs';
         let allPosts = [];
         let allJobs = [];
+        let activeDropdown = null;
         
-        // ===== POST/FEED FUNCTIONS (FROM FIRST VERSION) =====
+        // ===== HELPER FUNCTIONS =====
         function showToast(message, type = 'success') {
             const toastContainer = document.querySelector('.toast-container');
             const toast = document.createElement('div');
@@ -1919,6 +2095,76 @@
             return null;
         }
         
+        // ===== DROPDOWN FUNCTIONS - FIXED FOR MOBILE =====
+        function toggleProfileMenu() {
+            closeAllDropdowns();
+            const dropdown = document.getElementById('profileMenu');
+            dropdown.classList.toggle('show');
+            if (dropdown.classList.contains('show')) {
+                activeDropdown = dropdown;
+                document.body.classList.add('dropdown-open');
+            } else {
+                activeDropdown = null;
+                document.body.classList.remove('dropdown-open');
+            }
+        }
+        
+        function toggleThreeDotMenu(button) {
+            closeAllDropdowns();
+            const dropdown = button.parentElement.querySelector('.menu-content');
+            dropdown.classList.toggle('show');
+            if (dropdown.classList.contains('show')) {
+                activeDropdown = dropdown;
+                document.body.classList.add('dropdown-open');
+            } else {
+                activeDropdown = null;
+                document.body.classList.remove('dropdown-open');
+            }
+        }
+        
+        // FIXED: Share dropdown function
+        function toggleShareDropdown(button) {
+            closeAllDropdowns();
+            const dropdown = button.nextElementSibling;
+            dropdown.classList.toggle('show');
+            if (dropdown.classList.contains('show')) {
+                activeDropdown = dropdown;
+                document.body.classList.add('dropdown-open');
+            } else {
+                activeDropdown = null;
+                document.body.classList.remove('dropdown-open');
+            }
+        }
+        
+        function closeAllDropdowns() {
+            // Close profile menu
+            const profileMenu = document.getElementById('profileMenu');
+            if (profileMenu) profileMenu.classList.remove('show');
+            
+            // Close all three-dot menus
+            document.querySelectorAll('.three-dot-menu .menu-content').forEach(menu => {
+                menu.classList.remove('show');
+            });
+            
+            // Close all share dropdowns
+            document.querySelectorAll('.share-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('show');
+            });
+            
+            activeDropdown = null;
+            document.body.classList.remove('dropdown-open');
+        }
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.profile-dropdown') && 
+                !event.target.closest('.three-dot-menu') &&
+                !event.target.closest('.share-button-container')) {
+                closeAllDropdowns();
+            }
+        });
+        
+        // ===== POST/FEED FUNCTIONS =====
         // Tab switching
         function switchTab(tabName) {
             currentTab = tabName;
@@ -2181,28 +2427,28 @@
                                     </button>
                                     ${applyButton}
                                 </div>
-                                <!-- Share Button -->
+                                <!-- FIXED: Share Button -->
                                 <div class="share-button-container">
                                     <button class="share-button" onclick="toggleShareDropdown(this)">
                                         <i class="fas fa-share-alt me-1"></i> Share
                                     </button>
                                     <div class="share-dropdown">
-                                        <a href="#" class="facebook" onclick="shareToFacebook('${job.id}'); return false;">
+                                        <a href="#" onclick="shareToFacebook('${job.id}'); return false;">
                                             <i class="fab fa-facebook-f"></i> Facebook
                                         </a>
-                                        <a href="#" class="linkedin" onclick="shareToLinkedIn('${job.id}'); return false;">
+                                        <a href="#" onclick="shareToLinkedIn('${job.id}'); return false;">
                                             <i class="fab fa-linkedin-in"></i> LinkedIn
                                         </a>
-                                        <a href="#" class="whatsapp" onclick="shareToWhatsApp('${job.id}'); return false;">
+                                        <a href="#" onclick="shareToWhatsApp('${job.id}'); return false;">
                                             <i class="fab fa-whatsapp"></i> WhatsApp
                                         </a>
-                                        <a href="#" class="twitter" onclick="shareToTwitter('${job.id}'); return false;">
+                                        <a href="#" onclick="shareToTwitter('${job.id}'); return false;">
                                             <i class="fab fa-twitter"></i> Twitter
                                         </a>
-                                        <a href="#" class="email" onclick="shareViaEmail('${job.id}'); return false;">
+                                        <a href="#" onclick="shareViaEmail('${job.id}'); return false;">
                                             <i class="fas fa-envelope"></i> Email
                                         </a>
-                                        <a href="#" class="link" onclick="copyLink('${job.id}'); return false;">
+                                        <a href="#" onclick="copyLink('${job.id}'); return false;">
                                             <i class="fas fa-link"></i> Copy Link
                                         </a>
                                     </div>
@@ -2541,8 +2787,6 @@
                     document.getElementById('activeJobsCount').textContent = data.stats.active_jobs || '0';
                     document.getElementById('totalApplications').textContent = data.stats.total_applications || '0';
                     document.getElementById('profileViews').textContent = data.stats.profile_views || '0';
-                    
-                    showToast('Stats updated successfully!', 'success');
                 } else {
                     console.error('Failed to load business stats:', data.error);
                     document.getElementById('activeJobsCount').textContent = '0';
@@ -2570,19 +2814,8 @@
             }
         }
         
-        // Share functionality
-        function toggleShareDropdown(button) {
-            // Close all other share dropdowns first
-            document.querySelectorAll('.share-dropdown').forEach(dropdown => {
-                if (dropdown !== button.nextElementSibling) {
-                    dropdown.classList.remove('show');
-                }
-            });
-            
-            const dropdown = button.nextElementSibling;
-            dropdown.classList.toggle('show');
-        }
-        
+        // ===== SHARE FUNCTIONALITY - FIXED =====
+        // Share functions
         function shareToFacebook(jobId) {
             const url = encodeURIComponent(`${window.location.origin}/jobs/${jobId}/`);
             const title = encodeURIComponent(`Check out this job opportunity!`);
@@ -2618,6 +2851,7 @@
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(url).then(() => {
                     showToast('Link copied to clipboard!', 'success');
+                    closeAllDropdowns();
                 }).catch(() => {
                     fallbackCopyText(url);
                 });
@@ -2643,33 +2877,7 @@
             document.body.removeChild(textArea);
         }
         
-        // Profile dropdown functionality
-        function toggleProfileMenu() {
-            const dropdown = document.getElementById('profileMenu');
-            dropdown.classList.toggle('show');
-        }
-        
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', function(event) {
-            const profileDropdown = document.getElementById('profileMenu');
-            const profileAvatar = document.querySelector('.profile-avatar-small');
-            
-            if (profileDropdown && profileAvatar && !profileAvatar.contains(event.target) && !profileDropdown.contains(event.target)) {
-                profileDropdown.classList.remove('show');
-            }
-            
-            // Close all share dropdowns
-            document.querySelectorAll('.share-dropdown').forEach(dropdown => {
-                dropdown.classList.remove('show');
-            });
-            
-            // Close profile menu when clicking outside
-            if (!event.target.closest('.profile-dropdown')) {
-                if (profileDropdown) profileDropdown.classList.remove('show');
-            }
-        });
-        
-        // ===== LOGIN SYSTEM FUNCTIONS (FROM SECOND VERSION) =====
+        // ===== LOGIN SYSTEM FUNCTIONS =====
         function togglePassword(inputId, button) {
             const input = document.getElementById(inputId);
             if (!input) return;
@@ -2938,6 +3146,13 @@
             document.getElementById('postModal').addEventListener('click', function(event) {
                 if (event.target === this) {
                     hidePostModal();
+                }
+            });
+            
+            // Close dropdowns when clicking escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeAllDropdowns();
                 }
             });
             
