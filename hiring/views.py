@@ -2,6 +2,7 @@ import csv
 import json
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
 import uuid  # Add this import
 import psutil  # for system health check
 from django.db.models import Count, Q
@@ -7722,3 +7723,384 @@ def api_job_comment_replies(request, interaction_id):
             'success': False,
             'error': 'Failed to process replies'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ==================== FEED PAGE VIEW ====================
+def feed_page(request):
+    """Render the feed page"""
+    context = {
+        'user': request.user,
+    }
+    return render(request, 'feed_page.html', context)
+
+# ==================== FEED API ENDPOINTS ====================
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_home_feed(request):
+    """Get posts for home page feed with pagination and filtering - ALL users"""
+    try:
+        # Get and validate query parameters
+        try:
+            page = max(1, int(request.GET.get('page', 1)))
+            page_size = min(100, max(1, int(request.GET.get('page_size', 10))))
+        except ValueError:
+            return error_response('Invalid page or page_size parameter')
+        
+        post_type = request.GET.get('type', 'all')
+        sort_by = request.GET.get('sort', 'newest')
+        search = request.GET.get('search', '').strip()
+        
+        # Allowed values
+        ALLOWED_POST_TYPES = ['all', 'general', 'job-update', 'advice', 'question']
+        ALLOWED_SORT_OPTIONS = ['newest', 'popular', 'top']
+        
+        # Validate parameters
+        if post_type not in ALLOWED_POST_TYPES:
+            return error_response(
+                f'Invalid post type. Allowed: {", ".join(ALLOWED_POST_TYPES)}'
+            )
+        
+        if sort_by not in ALLOWED_SORT_OPTIONS:
+            return error_response(
+                f'Invalid sort option. Allowed: {", ".join(ALLOWED_SORT_OPTIONS)}'
+            )
+        
+        # Apply visibility filters for ALL users
+        # For public feed, only show public posts
+        posts = Post.objects.filter(is_published=True, visibility='public')
+        
+        # Filter by post type
+        if post_type != 'all':
+            posts = posts.filter(post_type=post_type)
+        
+        # Search filter (case-insensitive)
+        if search:
+            search_filter = (
+                Q(title__icontains=search) |
+                Q(content__icontains=search) |
+                Q(tags__icontains=search) |
+                Q(author__username__icontains=search) |
+                Q(author__first_name__icontains=search) |
+                Q(author__last_name__icontains=search)
+            )
+            posts = posts.filter(search_filter)
+        
+        # Apply sorting
+        if sort_by == 'popular':
+            # Calculate popularity score
+            posts = posts.annotate(
+                popularity_score=(
+                    Count('likes') + 
+                    Count('comments') * 2 + 
+                    F('views') * 0.1 + 
+                    F('shares') * 3
+                )
+            ).order_by('-popularity_score', '-created_at')
+        elif sort_by == 'top':
+            # Top posts based on rating
+            posts = posts.filter(rating_count__gte=3).order_by('-average_rating', '-created_at')
+        else:  # newest
+            posts = posts.order_by('-created_at')
+        
+        # Apply pagination
+        total_posts = posts.count()
+        total_pages = (total_posts + page_size - 1) // page_size
+        
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size
+        paginated_posts = posts[start_index:end_index]
+        
+        # Serialize posts
+        from .serializers import PostSerializer
+        serializer = PostSerializer(
+            paginated_posts, 
+            many=True, 
+            context={'request': request}
+        )
+        
+        # Check which posts user has liked
+        posts_data = serializer.data
+        if request.user.is_authenticated:
+            liked_post_ids = set(
+                request.user.liked_posts.values_list('id', flat=True)
+            )
+            for post in posts_data:
+                post['user_has_liked'] = post['id'] in liked_post_ids
+        
+        return Response({
+            'success': True,
+            'posts': posts_data,
+            'pagination': {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_posts': total_posts,
+                'page_size': page_size
+            },
+            'filters': {
+                'current_type': post_type,
+                'current_sort': sort_by,
+                'search_query': search if search else None,
+                'allowed_types': ALLOWED_POST_TYPES,
+                'allowed_sort_options': ALLOWED_SORT_OPTIONS
+            },
+            'user_info': {
+                'is_authenticated': request.user.is_authenticated,
+                'username': request.user.username if request.user.is_authenticated else None,
+                'user_type': getattr(request.user, 'user_type', None) if request.user.is_authenticated else None
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error loading home feed: {str(e)}", exc_info=True)
+        return error_response(
+            'Failed to load feed. Please try again later.',
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_feed_posts(request):
+    """Get feed of all public posts (simplified version for home page)"""
+    try:
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 20))
+        
+        # Get all public published posts
+        posts = Post.objects.filter(
+            is_published=True,
+            visibility='public'
+        ).order_by('-created_at')
+        
+        # Apply pagination
+        total_posts = posts.count()
+        total_pages = (total_posts + page_size - 1) // page_size
+        
+        start_index = (page - 1) * page_size
+        end_index = start_index + page_size
+        paginated_posts = posts[start_index:end_index]
+        
+        # Serialize posts
+        from .serializers import PostSerializer
+        serializer = PostSerializer(
+            paginated_posts, 
+            many=True, 
+            context={'request': request}
+        )
+        
+        # Check which posts user has liked
+        posts_data = serializer.data
+        if request.user.is_authenticated:
+            liked_post_ids = set(
+                request.user.liked_posts.values_list('id', flat=True)
+            )
+            for post in posts_data:
+                post['user_has_liked'] = post['id'] in liked_post_ids
+        
+        return Response({
+            'success': True,
+            'posts': posts_data,
+            'pagination': {
+                'current_page': page,
+                'total_pages': total_pages,
+                'total_posts': total_posts,
+                'page_size': page_size
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error loading feed posts: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to load feed'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def api_post_stats(request):
+    """Get post statistics for dashboard"""
+    try:
+        total_posts = Post.objects.filter(is_published=True).count()
+        total_comments = Comment.objects.count()
+        
+        # Post type distribution
+        post_types = Post.objects.filter(is_published=True).values('post_type').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        # Recent activity
+        recent_posts = Post.objects.filter(is_published=True).order_by('-created_at')[:5]
+        
+        from .serializers import PostSerializer
+        recent_posts_data = PostSerializer(
+            recent_posts, 
+            many=True, 
+            context={'request': request}
+        ).data
+        
+        # Most liked posts
+        most_liked = Post.objects.filter(is_published=True).annotate(
+            likes_count=Count('likes')
+        ).order_by('-likes_count')[:5]
+        
+        most_liked_data = []
+        for post in most_liked:
+            most_liked_data.append({
+                'id': post.id,
+                'title': post.title,
+                'author': post.author.username,
+                'likes_count': post.likes.count(),
+                'post_type': post.post_type
+            })
+        
+        return Response({
+            'success': True,
+            'stats': {
+                'total_posts': total_posts,
+                'total_comments': total_comments,
+                'post_type_distribution': list(post_types),
+                'recent_posts': recent_posts_data,
+                'most_liked_posts': most_liked_data
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting post stats: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to load post statistics'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_user_post_stats(request):
+    """Get user-specific post statistics"""
+    try:
+        user = request.user
+        
+        # User's posts
+        user_posts = Post.objects.filter(author=user)
+        total_posts = user_posts.count()
+        published_posts = user_posts.filter(is_published=True).count()
+        
+        # Engagement stats
+        total_likes = 0
+        total_comments = 0
+        total_views = 0
+        
+        for post in user_posts:
+            total_likes += post.likes.count()
+            total_comments += post.comments.count()
+            total_views += post.views
+        
+        # Recent posts
+        recent_posts = user_posts.order_by('-created_at')[:5]
+        
+        from .serializers import PostSerializer
+        recent_posts_data = PostSerializer(
+            recent_posts, 
+            many=True, 
+            context={'request': request}
+        ).data
+        
+        # Most popular post
+        most_popular = user_posts.annotate(
+            engagement=Count('likes') + Count('comments') + F('shares')
+        ).order_by('-engagement').first()
+        
+        most_popular_data = None
+        if most_popular:
+            most_popular_data = {
+                'id': most_popular.id,
+                'title': most_popular.title,
+                'engagement': most_popular.total_engagement() if hasattr(most_popular, 'total_engagement') else 0,
+                'views': most_popular.views
+            }
+        
+        return Response({
+            'success': True,
+            'stats': {
+                'total_posts': total_posts,
+                'published_posts': published_posts,
+                'total_likes': total_likes,
+                'total_comments': total_comments,
+                'total_views': total_views,
+                'recent_posts': recent_posts_data,
+                'most_popular_post': most_popular_data
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting user post stats: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to load your post statistics'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# ==================== HELPER FUNCTIONS ====================
+def error_response(message, status_code=status.HTTP_400_BAD_REQUEST):
+    """Helper function for error responses"""
+    return Response({
+        'success': False,
+        'error': message
+    }, status=status_code)
+
+def can_user_view_post(post, user):
+    """Check if user can view a post"""
+    if not user.is_authenticated:
+        return post.visibility == 'public'
+    
+    if post.visibility == 'public':
+        return True
+    elif post.visibility == 'private':
+        return user == post.author
+    elif post.visibility == 'company':
+        return user == post.author or (user.user_type == 'admin' and post.company and post.company.user == user)
+    elif post.visibility == 'connections':
+        return user == post.author  # You can add more logic here later
+    return False
+
+def get_paginated_data(queryset, page, page_size, serializer_class, context=None):
+    """Helper to get paginated data"""
+    total = queryset.count()
+    total_pages = (total + page_size - 1) // page_size
+    
+    start_index = (page - 1) * page_size
+    end_index = start_index + page_size
+    
+    paginated_items = queryset[start_index:end_index]
+    serializer = serializer_class(paginated_items, many=True, context=context)
+    
+    return {
+        'data': serializer.data,
+        'pagination': {
+            'current_page': page,
+            'total_pages': total_pages,
+            'total_items': total,
+            'page_size': page_size
+        }
+    }
+
+def get_user_visibility_filters(user):
+    """Get visibility filters based on user authentication"""
+    if not user.is_authenticated:
+        return Q(visibility='public', is_published=True)
+    
+    # For authenticated users
+    filters = Q(is_published=True) & (
+        Q(visibility='public') |
+        Q(author=user) |  # User's own posts
+        Q(visibility='private', author=user) |
+        Q(visibility='connections', author=user)  # Add connection logic later
+    )
+    
+    # For business users, show company posts
+    if hasattr(user, 'user_type') and user.user_type == 'admin':
+        filters |= Q(visibility='company')
+    
+    return filters
+
+# ==================== URL PATTERNS TO ADD ====================
+@login_required
+def posts_page(request):
+    """Render the dedicated posts page"""
+    return render(request, 'post.html')

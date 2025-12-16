@@ -177,4 +177,10 @@ urlpatterns = [
     # ADD THIS LINE ↑↑↑
     path('api/posts/stats/', views.api_post_stats, name='api_post_stats'),
     path('api/posts/user-stats/', views.api_user_post_stats, name='api_user_post_stats'),
+    path('feed/', views.feed_page, name='feed_page'),
+    # Feed API endpoints
+    path('api/feed/', views.api_home_feed, name='api_home_feed'),
+    path('api/posts/stats/', views.api_post_stats, name='api_post_stats'),
+    path('api/posts/user-stats/', views.api_user_post_stats, name='api_user_post_stats'),
+    
 ]

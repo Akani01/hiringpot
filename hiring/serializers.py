@@ -1341,3 +1341,10 @@ class JobListingInteractionSerializer(serializers.ModelSerializer):
             'comments_count', 'user_has_liked', 'user_has_disliked',
             'created_at', 'updated_at'
         ]
+
+
+class RatingSerializer(serializers.Serializer):
+    rating = serializers.IntegerField(min_value=1, max_value=5)
+    
+    def validate(self, data):
+        return data

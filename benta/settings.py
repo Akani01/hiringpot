@@ -24,6 +24,19 @@ ALLOWED_HOSTS = [
         '127.0.0.1',
 ]  # Railway gives dynamic domains
 
+CSRF_COOKIE_HTTPONLY = False  # must be readable by JS
+CSRF_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = "Lax"
+
+
+SESSION_COOKIE_SECURE = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://hiringpot-production.up.railway.app",
+    "https://tolleya.com",
+    "https://www.tolleya.com",
+]
 # -------------------------------------------------------------------
 # APPLICATIONS
 # -------------------------------------------------------------------
