@@ -600,6 +600,8 @@
 
         // ========== MAIN FUNCTIONS ==========
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded');
+            
             if (!jobId) {
                 showError('No job ID found in URL. Please check the link and try again.');
                 return;
@@ -640,113 +642,186 @@
         }
 
         function displayJobDetails(job) {
-            // Basic job info
-            document.getElementById('job-title').innerHTML = escapeHtml(job.title || 'No title available');
-            document.getElementById('company-name').innerHTML = escapeHtml(job.company_name || 'Company not specified');
-            document.getElementById('job-location').querySelector('span').innerHTML = escapeHtml(job.location || 'Location not specified');
-            document.getElementById('job-type').querySelector('span').innerHTML = escapeHtml(job.contract_type || 'Not specified');
+            console.log('Displaying job details:', job);
             
-            // Format apply by date
-            if (job.apply_by) {
-                const applyDate = new Date(job.apply_by);
-                document.getElementById('apply-by').querySelector('span').textContent = applyDate.toLocaleDateString();
-            } else {
-                document.getElementById('apply-by').querySelector('span').textContent = 'Not specified';
-            }
-            
-            // Company logo - handle null/empty logo
-            const logoImg = document.getElementById('company-logo');
-            const defaultLogo = document.getElementById('default-logo');
-            
-            if (job.company_logo && job.company_logo.trim() !== '') {
-                // If it's a relative path, ensure it starts with /
-                let logoUrl = job.company_logo;
-                if (logoUrl && !logoUrl.startsWith('http') && !logoUrl.startsWith('/')) {
-                    logoUrl = '/' + logoUrl;
-                }
-                logoImg.src = logoUrl;
-                logoImg.onerror = function() {
-                    // If image fails to load, show default logo
-                    logoImg.style.display = 'none';
-                    defaultLogo.style.display = 'flex';
-                };
-                logoImg.style.display = 'block';
-                defaultLogo.style.display = 'none';
-            } else {
-                // No logo provided, show default
-                logoImg.style.display = 'none';
-                defaultLogo.style.display = 'flex';
-            }
-
-            // Show job status badge
-            if (job.status) {
-                const badge = document.getElementById('job-status-badge');
-                let statusText = '';
-                let statusClass = '';
-                
-                switch(job.status) {
-                    case 'published':
-                        statusText = 'Open';
-                        statusClass = 'status-published';
-                        break;
-                    case 'draft':
-                        statusText = 'Draft';
-                        statusClass = 'status-draft';
-                        break;
-                    case 'closed':
-                        statusText = 'Closed';
-                        statusClass = 'status-closed';
-                        break;
-                    default:
-                        statusText = job.status.charAt(0).toUpperCase() + job.status.slice(1);
-                        statusClass = 'status-draft';
+            try {
+                // Basic job info
+                const titleEl = document.getElementById('job-title');
+                if (titleEl) {
+                    titleEl.innerHTML = escapeHtml(job.title || 'No title available');
                 }
                 
-                badge.textContent = statusText;
-                badge.className = 'job-status-badge ' + statusClass;
-                badge.style.display = 'inline-block';
+                const companyNameEl = document.getElementById('company-name');
+                if (companyNameEl) {
+                    companyNameEl.innerHTML = escapeHtml(job.company_name || 'Company not specified');
+                }
+                
+                const jobLocationEl = document.getElementById('job-location');
+                if (jobLocationEl) {
+                    jobLocationEl.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${escapeHtml(job.location || 'Location not specified')}`;
+                }
+                
+                const jobTypeEl = document.getElementById('job-type');
+                if (jobTypeEl) {
+                    jobTypeEl.innerHTML = `<i class="fas fa-briefcase"></i> ${escapeHtml(job.contract_type || 'Not specified')}`;
+                }
+                
+                const applyByEl = document.getElementById('apply-by');
+                if (applyByEl) {
+                    if (job.apply_by) {
+                        const applyDate = new Date(job.apply_by);
+                        applyByEl.innerHTML = `<i class="fas fa-calendar"></i> Apply by: ${applyDate.toLocaleDateString()}`;
+                    } else {
+                        applyByEl.innerHTML = '<i class="fas fa-calendar"></i> Apply by: Not specified';
+                    }
+                }
+                
+                // Company logo - handle null/empty logo
+                const logoImg = document.getElementById('company-logo');
+                const defaultLogo = document.getElementById('default-logo');
+                
+                if (logoImg && defaultLogo) {
+                    if (job.company_logo && job.company_logo.trim() !== '') {
+                        // If it's a relative path, ensure it starts with /
+                        let logoUrl = job.company_logo;
+                        if (logoUrl && !logoUrl.startsWith('http') && !logoUrl.startsWith('/')) {
+                            logoUrl = '/' + logoUrl;
+                        }
+                        logoImg.src = logoUrl;
+                        logoImg.onerror = function() {
+                            // If image fails to load, show default logo
+                            logoImg.style.display = 'none';
+                            defaultLogo.style.display = 'flex';
+                        };
+                        logoImg.style.display = 'block';
+                        defaultLogo.style.display = 'none';
+                    } else {
+                        // No logo provided, show default
+                        logoImg.style.display = 'none';
+                        defaultLogo.style.display = 'flex';
+                    }
+                }
+
+                // Show job status badge
+                if (job.status) {
+                    const badge = document.getElementById('job-status-badge');
+                    if (badge) {
+                        let statusText = '';
+                        let statusClass = '';
+                        
+                        switch(job.status) {
+                            case 'published':
+                                statusText = 'Open';
+                                statusClass = 'status-published';
+                                break;
+                            case 'draft':
+                                statusText = 'Draft';
+                                statusClass = 'status-draft';
+                                break;
+                            case 'closed':
+                                statusText = 'Closed';
+                                statusClass = 'status-closed';
+                                break;
+                            default:
+                                statusText = job.status.charAt(0).toUpperCase() + job.status.slice(1);
+                                statusClass = 'status-draft';
+                        }
+                        
+                        badge.textContent = statusText;
+                        badge.className = 'job-status-badge ' + statusClass;
+                        badge.style.display = 'inline-block';
+                    }
+                }
+
+                // Job content with fallbacks
+                const positionSummaryEl = document.getElementById('position-summary');
+                if (positionSummaryEl) {
+                    positionSummaryEl.innerHTML = job.position_summary ? 
+                        `<p>${escapeHtml(job.position_summary)}</p>` : '<p class="text-muted">No position summary available.</p>';
+                }
+                
+                const jobDescriptionEl = document.getElementById('job-description');
+                if (jobDescriptionEl) {
+                    jobDescriptionEl.innerHTML = job.job_description ? 
+                        `<p>${escapeHtml(job.job_description)}</p>` : '<p class="text-muted">No detailed description available.</p>';
+                }
+
+                // Requirements with fallbacks
+                const experienceReqEl = document.getElementById('experience-requirements');
+                if (experienceReqEl) {
+                    experienceReqEl.innerHTML = job.experience_requirements ? 
+                        `<p>${escapeHtml(job.experience_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
+                }
+                
+                const educationReqEl = document.getElementById('education-requirements');
+                if (educationReqEl) {
+                    educationReqEl.innerHTML = job.education_requirements ? 
+                        `<p>${escapeHtml(job.education_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
+                }
+                
+                const skillsReqEl = document.getElementById('skills-requirements');
+                if (skillsReqEl) {
+                    skillsReqEl.innerHTML = job.skills_requirements ? 
+                        `<p>${escapeHtml(job.skills_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
+                }
+                
+                const knowledgeReqEl = document.getElementById('knowledge-requirements');
+                if (knowledgeReqEl) {
+                    knowledgeReqEl.innerHTML = job.knowledge_requirements ? 
+                        `<p>${escapeHtml(job.knowledge_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
+                }
+
+                const competenciesReqEl = document.getElementById('competencies-requirements');
+                if (competenciesReqEl) {
+                    competenciesReqEl.innerHTML = job.competencies_requirements ? 
+                        `<p>${escapeHtml(job.competencies_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
+                }
+
+                // Sidebar details with fallbacks
+                const industryEl = document.getElementById('job-industry');
+                if (industryEl) {
+                    industryEl.textContent = job.industry || 'Not specified';
+                }
+                
+                const categoryEl = document.getElementById('job-category');
+                if (categoryEl) {
+                    categoryEl.textContent = job.job_category || 'Not specified';
+                }
+                
+                const contractEl = document.getElementById('job-contract');
+                if (contractEl) {
+                    contractEl.textContent = job.contract_type || 'Not specified';
+                }
+                
+                const eePositionEl = document.getElementById('job-ee-position');
+                if (eePositionEl) {
+                    eePositionEl.textContent = job.ee_position ? 'Yes' : 'No';
+                }
+                
+                // Format posted date
+                const postedEl = document.getElementById('job-posted');
+                if (postedEl) {
+                    if (job.created_at) {
+                        const postedDate = new Date(job.created_at);
+                        postedEl.textContent = postedDate.toLocaleDateString();
+                    } else {
+                        postedEl.textContent = 'Not specified';
+                    }
+                }
+                
+                // Company description
+                const companyDescEl = document.getElementById('company-description');
+                if (companyDescEl) {
+                    companyDescEl.innerHTML = job.company_description ? 
+                        `<p>${escapeHtml(job.company_description)}</p>` : '<p class="text-muted">No company description available.</p>';
+                }
+                
+                console.log('Job details displayed successfully');
+                
+            } catch (error) {
+                console.error('Error displaying job details:', error);
+                showError('Error displaying job details: ' + error.message);
             }
-
-            // Job content with fallbacks
-            document.getElementById('position-summary').innerHTML = job.position_summary ? 
-                `<p>${escapeHtml(job.position_summary)}</p>` : '<p class="text-muted">No position summary available.</p>';
-            
-            document.getElementById('job-description').innerHTML = job.job_description ? 
-                `<p>${escapeHtml(job.job_description)}</p>` : '<p class="text-muted">No detailed description available.</p>';
-
-            // Requirements with fallbacks
-            document.getElementById('experience-requirements').innerHTML = job.experience_requirements ? 
-                `<p>${escapeHtml(job.experience_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
-            
-            document.getElementById('education-requirements').innerHTML = job.education_requirements ? 
-                `<p>${escapeHtml(job.education_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
-            
-            document.getElementById('skills-requirements').innerHTML = job.skills_requirements ? 
-                `<p>${escapeHtml(job.skills_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
-            
-            document.getElementById('knowledge-requirements').innerHTML = job.knowledge_requirements ? 
-                `<p>${escapeHtml(job.knowledge_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
-
-            document.getElementById('competencies-requirements').innerHTML = job.competencies_requirements ? 
-                `<p>${escapeHtml(job.competencies_requirements)}</p>` : '<p class="text-muted">Not specified</p>';
-
-            // Sidebar details with fallbacks
-            document.getElementById('job-industry').textContent = job.industry || 'Not specified';
-            document.getElementById('job-category').textContent = job.job_category || 'Not specified';
-            document.getElementById('job-contract').textContent = job.contract_type || 'Not specified';
-            document.getElementById('job-ee-position').textContent = job.ee_position ? 'Yes' : 'No';
-            
-            // Format posted date
-            if (job.created_at) {
-                const postedDate = new Date(job.created_at);
-                document.getElementById('job-posted').textContent = postedDate.toLocaleDateString();
-            } else {
-                document.getElementById('job-posted').textContent = 'Not specified';
-            }
-            
-            // Company description
-            document.getElementById('company-description').innerHTML = job.company_description ? 
-                `<p>${escapeHtml(job.company_description)}</p>` : '<p class="text-muted">No company description available.</p>';
         }
 
         function updateApplyButton(hasApplied, jobStatus) {
@@ -754,6 +829,11 @@
             const appliedMessage = document.getElementById('applied-message');
             const loginRequired = document.getElementById('login-required');
             const statusMessage = document.getElementById('status-message');
+            
+            if (!applyBtn || !appliedMessage || !loginRequired || !statusMessage) {
+                console.error('One or more apply button elements not found');
+                return;
+            }
             
             // Clear previous messages
             applyBtn.style.display = 'block';
@@ -808,6 +888,8 @@
             if (!confirm('Are you sure you want to apply for this position?')) return;
 
             const applyBtn = document.getElementById('apply-btn');
+            if (!applyBtn) return;
+            
             applyBtn.disabled = true;
             applyBtn.innerHTML = '<div class="loading-spinner"></div> Applying...';
 
@@ -827,7 +909,10 @@
                 if (data.success) {
                     showSuccess('Application submitted successfully!');
                     applyBtn.style.display = 'none';
-                    document.getElementById('applied-message').style.display = 'block';
+                    const appliedMessage = document.getElementById('applied-message');
+                    if (appliedMessage) {
+                        appliedMessage.style.display = 'block';
+                    }
                 } else {
                     showError('Application failed: ' + (data.error || 'Please try again'));
                     applyBtn.disabled = false;
@@ -844,6 +929,7 @@
 
         // ========== UTILITY FUNCTIONS ==========
         function showError(message) {
+            // Remove existing alerts
             document.querySelectorAll('.custom-alert').forEach(alert => alert.remove());
             
             const errorDiv = document.createElement('div');
@@ -863,6 +949,7 @@
         }
 
         function showSuccess(message) {
+            // Remove existing alerts
             document.querySelectorAll('.custom-alert').forEach(alert => alert.remove());
             
             const successDiv = document.createElement('div');
@@ -882,8 +969,11 @@
         }
 
         function showLogin() {
-            const modal = new bootstrap.Modal(document.getElementById('loginModal'));
-            modal.show();
+            const modalElement = document.getElementById('loginModal');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            }
         }
 
         function showSignup() {
@@ -918,7 +1008,10 @@
         }
 
         function toggleProfileDropdown() {
-            document.getElementById("profileMenu").classList.toggle("show");
+            const profileMenu = document.getElementById("profileMenu");
+            if (profileMenu) {
+                profileMenu.classList.toggle("show");
+            }
         }
 
         // ========== EVENT LISTENERS ==========
@@ -932,33 +1025,39 @@
             }
         });
 
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData);
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const data = Object.fromEntries(formData);
 
-            fetch('/api/auth/login/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-                    location.reload();
-                } else {
-                    showError('Login failed: ' + (data.error || 'Please check your credentials'));
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showError('Login failed. Please try again.');
+                fetch('/api/auth/login/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCSRFToken()
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                        location.reload();
+                    } else {
+                        showError('Login failed: ' + (data.error || 'Please check your credentials'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Login failed. Please try again.');
+                });
             });
-        });
+        }
 
         console.log('Job details page loaded successfully');
         console.log('Job ID:', jobId);

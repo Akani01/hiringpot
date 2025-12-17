@@ -1469,7 +1469,6 @@ def api_job_listings(request):
         'jobs': serializer.data
     })
 
-#job details
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def api_job_detail(request, job_id):
@@ -1477,52 +1476,51 @@ def api_job_detail(request, job_id):
     print(f"Job ID received: {job_id}")
     
     try:
-        # Get all published jobs
         jobs = JobListing.objects.filter(status='published')
+        print(f"Total published jobs: {jobs.count()}")
         
         if not jobs.exists():
+            print("No published jobs found")
             return Response({
                 'success': False,
                 'error': 'No jobs available'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # For demo purposes, get the first job if ID is "1", otherwise try to match
+        # Print all job IDs for debugging
+        print(f"Available job IDs: {list(jobs.values_list('id', flat=True))}")
+        
         if job_id == "1":
             job_listing = jobs.first()
-            print("Using first job for ID '1'")
+            print(f"Using first job for ID '1': {job_listing.id} - {job_listing.title}")
         else:
-            # Try to find the specific job
             try:
                 job_listing = JobListing.objects.get(id=job_id)
-                print(f"Found specific job: {job_listing.title}")
+                print(f"Found specific job: {job_listing.id} - {job_listing.title}")
             except (ValueError, JobListing.DoesNotExist):
-                # Fallback to first job
                 job_listing = jobs.first()
-                print(f"Job {job_id} not found, using first available job")
+                print(f"Job {job_id} not found, using first available: {job_listing.id}")
         
         serializer = JobListingSerializer(job_listing, context={'request': request})
         
-        has_applied = False
-        if request.user.is_authenticated and request.user.user_type == 'applicant':
-            try:
-                profile = ApplicantProfile.objects.get(user=request.user)
-                has_applied = Application.objects.filter(applicant=profile, job_listing=job_listing).exists()
-            except ApplicantProfile.DoesNotExist:
-                pass
+        # Print serialized data for debugging
+        print(f"Serialized job data keys: {serializer.data.keys()}")
         
         return Response({
             'success': True,
             'job': serializer.data,
-            'has_applied': has_applied
+            'has_applied': False  # Simplified for debugging
         })
         
     except Exception as e:
         print(f"Error in api_job_detail: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return Response({
             'success': False,
             'error': 'Failed to load job details.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
