@@ -2126,6 +2126,24 @@
             return null;
         }
         
+        // ===== COMPANY LOGO FUNCTION WITH 3 FALLBACKS =====
+        function renderCompanyLogo(job) {
+            // 1. First try: Company logo from the job itself
+            if (job.company_logo) {
+                return `<img src="${job.company_logo}" class="company-logo-small" alt="${escapeHtml(job.company_name || 'Company')}">`;
+            }
+            
+            // 2. Second try: Author's business profile picture
+            if (job.author && job.author.profile_picture) {
+                return `<img src="${job.author.profile_picture}" class="company-logo-small" alt="${escapeHtml(job.author.username || 'Author')}">`;
+            }
+            
+            // 3. Fallback: Default placeholder
+            return `<div class="company-logo-placeholder">
+                        <i class="fas fa-building"></i>
+                    </div>`;
+        }
+        
         // ===== DROPDOWN FUNCTIONS - FIXED FOR MOBILE =====
         function toggleProfileMenu() {
             closeAllDropdowns();
@@ -2418,13 +2436,8 @@
                             
                             ${statusBadge}
                             <div class="company-logo-container">
-                                <!-- COMPANY LOGO SECTION - ADDED -->
-                                ${job.company_logo ? 
-                                    `<img src="${job.company_logo}" class="company-logo-small" alt="${escapeHtml(job.company_name)}">` :
-                                    `<div class="company-logo-placeholder">
-                                        <i class="fas fa-building"></i>
-                                    </div>`
-                                }
+                                <!-- COMPANY LOGO SECTION - USING THE 3 FALLBACK FUNCTION -->
+                                ${renderCompanyLogo(job)}
                                 <div class="company-info">
                                     <h5 class="job-title">${escapeHtml(job.title)}</h5>
                                     <h6 class="company-name">${escapeHtml(job.company_name)}</h6>
@@ -2502,12 +2515,8 @@
             container.innerHTML = jobs.map(job => `
                 <div class="mb-3 p-2 border rounded">
                     <div class="d-flex align-items-center mb-2">
-                        ${job.company_logo ? 
-                            `<img src="${job.company_logo}" class="company-logo-small me-2" style="width: 40px; height: 40px;" alt="${escapeHtml(job.company_name)}">` :
-                            `<div class="company-logo-placeholder me-2" style="width: 40px; height: 40px;">
-                                <i class="fas fa-building"></i>
-                            </div>`
-                        }
+                        <!-- Use the same logo function for consistency -->
+                        ${renderCompanyLogo(job)}
                         <div>
                             <strong>${escapeHtml(job.title)}</strong>
                             <div class="small text-muted">${escapeHtml(job.company_name)}</div>
