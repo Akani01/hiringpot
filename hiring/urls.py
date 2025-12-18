@@ -1,6 +1,8 @@
 from django.urls import path, include
 from . import views
 from . import message_views
+from django.views.generic import TemplateView
+
 
 # URL patterns for messaging - use this as a separate include
 message_urlpatterns = [
@@ -182,5 +184,12 @@ urlpatterns = [
     path('api/feed/', views.api_home_feed, name='api_home_feed'),
     path('api/posts/stats/', views.api_post_stats, name='api_post_stats'),
     path('api/posts/user-stats/', views.api_user_post_stats, name='api_user_post_stats'),
+    # Password reset pages
+    path('forgot-password/', TemplateView.as_view(template_name='forgot_password.html'), name='forgot_password'),
+    path('reset-password/', TemplateView.as_view(template_name='reset_password.html'), name='reset_password'),
+    
+    # API endpoints (you'll need to create these views)
+    path('api/auth/password-reset/', views.PasswordResetRequestView.as_view(), name='password_reset'),
+    path('api/auth/password-reset-confirm/', views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     
 ]
